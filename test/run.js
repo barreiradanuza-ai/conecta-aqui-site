@@ -150,6 +150,14 @@ const mcc = http.createServer((req, res) => {
   await t('Contatos listados e exportados', async () => {
     assert.equal((await get('/admin/api/contatos', H)).j[0].nome, 'Maria');
   });
+  await t('Faixas de CEP: gera resumo por prefixo e exporta CSV', async () => {
+    assert.equal((await send('/admin/api/faixas/gerar', 'POST', {}, H)).s, 200);
+    let f; for (let i = 0; i < 50; i++) { f = (await get('/admin/api/faixas', H)).j; if (!f.status.rodando) break; await new Promise((r) => setTimeout(r, 100)); }
+    assert.ok(!f.status.erro, f.status.erro); assert.ok(f.quantidade > 0);
+    assert.ok(f.topo.every((l) => /^\d{5}$/.test(l.prefixo)));
+    const r = await fetchOrig(B + '/admin/api/faixas/exportar', { headers: { cookie } });
+    assert.ok((await r.text()).includes('prefixo;total;'));
+  });
   await t('Arquivos estáticos e proteção de caminho', async () => {
     assert.equal((await fetchOrig(B + '/')).status, 200);
     assert.equal((await fetchOrig(B + '/admin')).status, 200);

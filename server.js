@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 
 const store = require('./lib/store');
 const csv = require('./lib/csv');
+const faixas = require('./lib/faixas');
 const cobertura = require('./lib/cobertura');
 const monitor = require('./lib/monitor');
 const UPLOADS_DIR = path.join(store.DATA_DIR, 'uploads');
@@ -299,6 +300,21 @@ async function rotaAdmin(req, res, url) {
   if (p === '/contatos' && req.method === 'GET') return json(res, 200, store.load('leads', []).slice(-500).reverse());
   if (p === '/contatos/exportar' && req.method === 'GET') {
     return enviar(res, 200, csv.stringify(store.load('leads', []), COLUNAS_LEAD), 'text/csv; charset=utf-8', { 'content-disposition': 'attachment; filename="contatos-conecta-aqui.csv"' });
+  }
+  // --- faixas de CEP (para segmentar anúncios) ---
+  if (p === '/faixas' && req.method === 'GET') {
+    const r = faixas.resultado();
+    return json(res, 200, { status: faixas.status(), geradoEm: r && r.geradoEm, operadoras: r && r.operadoras, quantidade: r ? r.linhas.length : 0, topo: r ? r.linhas.slice(0, 30) : [] });
+  }
+  if (p === '/faixas/gerar' && req.method === 'POST') {
+    if (cobertura.MODO_DEMO) return json(res, 400, { erro: 'Ponte com o MCC não configurada' });
+    return json(res, 200, { status: await faixas.gerar(operadoras) });
+  }
+  if (p === '/faixas/exportar' && req.method === 'GET') {
+    const r = faixas.resultado();
+    if (!r) return json(res, 404, { erro: 'Gere as faixas primeiro' });
+    const cols = ['prefixo', 'total', ...r.operadoras];
+    return enviar(res, 200, csv.stringify(r.linhas, cols), 'text/csv; charset=utf-8', { 'content-disposition': 'attachment; filename="faixas-cep-cobertura.csv"' });
   }
   // --- testar cobertura ---
   if (p === '/testar' && req.method === 'GET') {

@@ -165,6 +165,12 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
         <form class="barra" id="formTestar"><input name="cep" placeholder="00000-000" style="max-width:200px" required><button class="btn prim">Testar</button></form>
         <pre id="resTeste" class="oculto"></pre>
       </div>
+      <div class="card">
+        <h2>Faixas de CEP com cobertura</h2>
+        <p class="dica">Resume as listas de CEP do MCC em faixas de 5 dígitos (ex.: 22790) para segmentar anúncios no Google Ads. Leva alguns minutos.</p>
+        <div class="barra"><button class="btn prim" id="btnFaixas" type="button">Gerar faixas</button> <a class="btn" id="btnFaixasCsv" href="/admin/api/faixas/exportar">Baixar CSV</a></div>
+        <pre id="resFaixas" class="oculto"></pre>
+      </div>
     </div>
   </main>
 </section>
@@ -489,6 +495,23 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     try { pre.textContent = JSON.stringify(await api('/testar?cep=' + encodeURIComponent(e.target.cep.value)), null, 2); }
     catch (err) { pre.textContent = 'Erro: ' + err.message; }
   });
+
+  // ---------- faixas de CEP ----------
+  async function verFaixas() {
+    const pre = $('#resFaixas');
+    try {
+      const f = await api('/faixas');
+      pre.classList.remove('oculto');
+      const prog = Object.entries(f.status.progresso || {}).map(([op, p]) => `${op}: ${p.lidos}${p.total ? ' de ' + p.total : ''}`).join(' · ');
+      pre.textContent = f.status.rodando ? 'Gerando… ' + prog
+        : (f.status.erro ? 'Erro: ' + f.status.erro + '\n' : '') + (f.geradoEm ? `Gerado em ${new Date(f.geradoEm).toLocaleString('pt-BR')} · ${f.quantidade} faixas\n\nMaiores faixas (prefixo: CEPs):\n` + f.topo.map((l) => `${l.prefixo}  ${l.total}  (${f.operadoras.map((o) => o + ' ' + (l[o] || 0)).join(', ')})`).join('\n') : 'Ainda não gerado.');
+      if (f.status.rodando) setTimeout(verFaixas, 3000);
+    } catch (err) { pre.classList.remove('oculto'); pre.textContent = 'Erro: ' + err.message; }
+  }
+  $('#btnFaixas').addEventListener('click', async () => {
+    try { await api('/faixas/gerar', { method: 'POST' }); verFaixas(); } catch (err) { flash(err.message, 'erro'); }
+  });
+  document.querySelector('[data-aba="testar"]').addEventListener('click', verFaixas);
 
   iniciar();
 })();
