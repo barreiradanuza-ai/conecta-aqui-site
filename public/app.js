@@ -162,7 +162,7 @@
     $('#semCobertura').classList.add('oculto');
 
     renderChipsTipo();
-    $('#chipsOperadoras').innerHTML = j.operadoras.map((o) => `<button class="chip op" data-op="${esc(o.id)}" aria-pressed="${estado.ops.has(o.id)}"><span class="bola" style="background:${esc(o.cor)}"></span>${esc(o.nome)}</button>`).join('');
+    $('#chipsOperadoras').innerHTML = j.operadoras.map((o) => `<button class="chip op" data-op="${esc(o.id)}" aria-pressed="${estado.ops.has(o.id)}">${o.logoUrl ? `<img class="chip-logo" src="${esc(o.logoUrl)}" alt="${esc(o.nome)}">` : `<span class="bola" style="background:${esc(o.cor)}"></span>${esc(o.nome)}`}</button>`).join('');
     $$('#chipsOperadoras .chip').forEach((c) => c.addEventListener('click', () => {
       const id = c.dataset.op;
       estado.ops.has(id) ? estado.ops.delete(id) : estado.ops.add(id);
@@ -191,6 +191,12 @@
   }
   $('#ordem').addEventListener('change', (e) => { estado.ordem = e.target.value; if (estado.resultado) renderResultados(); });
 
+  // logo oficial (quando cadastrado) ou iniciais + nome
+  function marca(o) {
+    return o.logoUrl
+      ? `<span class="op-marca"><img src="${esc(o.logoUrl)}" alt="${esc(o.nome)}" loading="lazy" onload="if(this.naturalWidth/this.naturalHeight<1.4)this.parentNode.classList.add('quadrado')"></span>`
+      : `${logoOp(o)}${esc(o.nome)}`;
+  }
   function logoOp(o) {
     return o.logoUrl
       ? `<span class="op-logo"><img src="${esc(o.logoUrl)}" alt="" loading="lazy"></span>`
@@ -202,7 +208,7 @@
     const temPromo = p.precoPromo != null;
     return `<article class="plano${p.destaque ? ' destaque' : ''}">
       ${p.destaque ? '<span class="tag">Mais escolhido</span>' : ''}
-      <div class="op">${logoOp(p.operadora)}${esc(p.operadora.nome)}<span class="tipo-txt">${esc(TIPO_NOME[p.tipo] || 'Internet')}</span></div>
+      <div class="op">${marca(p.operadora)}<span class="tipo-txt">${esc(TIPO_NOME[p.tipo] || 'Internet')}</span></div>
       ${v ? `<div class="vel">${esc(v.n)}<small>${v.u}</small></div>` : ''}
       <div class="nome">${esc(p.nome)}</div>
       ${p.streaming?.length ? `<div class="streams">${p.streaming.map((x) => `<span class="stream">${esc(x.nome)} incluso${p.mesesStreaming ? ` <small>por ${esc(p.mesesStreaming)} meses</small>` : ''}</span>`).join('')}</div>` : ''}
@@ -235,7 +241,7 @@
 
     const qtd = {}; j.planos.forEach((p) => { qtd[p.operadora.id] = (qtd[p.operadora.id] || 0) + 1; });
     $('#faixaOps').innerHTML = j.operadoras.map((o) => `<div class="op-card">
-        <div class="op-nome">${logoOp(o)}${esc(o.nome)}</div>
+        <div class="op-nome">${marca(o)}</div>
         <p>Ofertas de internet e combos selecionadas pela Conecta Aqui.</p>
         <button class="btn btn-azul" data-op-buscar="${esc(o.id)}">Ver planos ${esc(o.nome)}</button>
       </div>`).join('');
@@ -250,7 +256,7 @@
     pontos.innerHTML = recs.length > 1 ? recs.map((_, k) => `<button aria-label="Recomendação ${k + 1}"></button>`).join('') : '';
     function mostrar(k) {
       i = k; const p = recs[k]; const v = p.velocidadeMbps ? vel(p.velocidadeMbps) : null;
-      $('#recomendaCorpo').innerHTML = `<div class="rec-op">${logoOp(p.operadora)}${esc(p.operadora.nome)} · ${esc(TIPO_NOME[p.tipo] || '')}</div>
+      $('#recomendaCorpo').innerHTML = `<div class="rec-op">${marca(p.operadora)} · ${esc(TIPO_NOME[p.tipo] || '')}</div>
         <div class="rec-linha">${v ? `<div class="rec-vel">${esc(v.n)}<small> ${v.u}</small></div>` : '<div></div>'}
         <div class="rec-preco"><small>a partir de</small>${brl(p.precoPromo ?? p.preco)}<small>por mês</small></div></div>
         <button class="btn btn-prim" type="button">Ver se atende meu CEP</button>`;

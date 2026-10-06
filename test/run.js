@@ -53,6 +53,7 @@ const mcc = http.createServer((req, res) => {
   process.env.MCC_PASSWORD = 'segredo';
   process.env.ADMIN_PASSWORD = 'admin123';
   process.env.WHATSAPP_NUMBER = '5521900000000';
+  process.env.MANTER_EXEMPLOS = '1';
   process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ca-'));
 
   // ViaCEP falso (o real fica bloqueado no ambiente de teste)
@@ -137,7 +138,7 @@ const mcc = http.createServer((req, res) => {
   });
   await t('Importação com erro não altera nada', async () => {
     const antes = (await get('/admin/api/planos', H)).j.length;
-    const imp = await send('/admin/api/planos/importar', 'POST', 'operadoraId;nome;preco\nclaro;Ok;99,9\nvivo;Ruim;10', { ...H, 'content-type': 'text/csv' });
+    const imp = await send('/admin/api/planos/importar', 'POST', 'operadoraId;nome;preco\nclaro;Ok;99,9\noi-inexistente;Ruim;10', { ...H, 'content-type': 'text/csv' });
     assert.equal(imp.s, 400); assert.ok(imp.j.detalhes[0].includes('Linha 3'));
     assert.equal((await get('/admin/api/planos', H)).j.length, antes);
   });
@@ -195,6 +196,23 @@ const mcc = http.createServer((req, res) => {
     global.precoGiga = '179,99';
     r = await monitor.verificarOperadora({ id: 'tim', siteOfertas: url }); assert.notEqual(r.hash, h1); assert.notEqual(r.revisadoHash, r.hash);
     const viaPainel = await get('/admin/api/monitor', H); assert.equal(viaPainel.j.tim.ofertas[2].precos[0], 179.99);
+  });
+
+  await t('Migração: logos oficiais, Vivo e troca de exemplos por planos reais', async () => {
+    const store = require('../lib/store');
+    const ops = (await get('/admin/api/operadoras', H)).j;
+    assert.ok(ops.find((o) => o.id === 'vivo'), 'Vivo adicionada');
+    assert.equal(ops.find((o) => o.id === 'nio').logoUrl, '/images/operadoras/nio.png');
+    assert.equal((await fetchOrig(B + '/images/operadoras/tim.png')).status, 200);
+    // com só exemplos e sem MANTER_EXEMPLOS, troca pelos reais
+    delete process.env.MANTER_EXEMPLOS;
+    store.save('planos', store.load('planos', []).filter((p) => /^Exemplo /.test(p.nome)));
+    store.init();
+    const nomes = store.load('planos', []).map((p) => p.nome);
+    assert.ok(nomes.includes('Nio Super 800 Mega + Globoplay'));
+    assert.ok(!nomes.some((n) => /^Exemplo /.test(n)));
+    // planos cadastrados pela equipe nunca são trocados
+    store.init(); assert.equal(store.load('planos', []).length, nomes.length);
   });
 
   console.log(`\n${ok} testes passaram.`);

@@ -167,10 +167,17 @@ p{margin:0}
 .plano:hover{box-shadow:var(--sombra)}
 .plano.destaque{border-color:var(--azul);box-shadow:0 0 0 1px var(--azul)}
 .plano .tag{position:absolute;top:-11px;left:24px;background:var(--azul);color:#fff;font:600 .7rem var(--f-txt);letter-spacing:.03em;padding:.35em .8em;border-radius:999px}
-.op{display:flex;align-items:center;gap:10px;font:600 .92rem var(--f-tit);color:var(--tinta)}
+.op{display:flex;align-items:center;gap:10px;min-height:40px;font:600 .92rem var(--f-tit);color:var(--tinta)}
 .op .tipo-txt{margin-left:auto;font:500 .74rem var(--f-txt);color:var(--muted);white-space:nowrap}
 .op-logo{width:32px;height:32px;flex:none;border-radius:8px;display:grid;place-items:center;color:#fff;font:700 .74rem var(--f-tit);overflow:hidden}
 .op-logo img{width:100%;height:100%;object-fit:contain;background:#fff}
+.op-marca{display:inline-flex;align-items:center;height:28px}
+.op-marca img{height:100%;width:auto;max-width:110px;object-fit:contain}
+.op-card .op-marca{height:40px}
+.op-card .op-marca img{max-width:150px}
+.op-marca.quadrado{height:40px}
+.op-card .op-marca.quadrado{height:56px}
+.chip-logo{height:18px;width:auto;max-width:70px;object-fit:contain}
 .vel{font:800 2.4rem var(--f-tit);letter-spacing:-.03em;color:var(--tinta);line-height:1;margin-top:6px}
 .vel small{font:600 .95rem var(--f-tit);color:var(--muted);margin-left:4px;letter-spacing:0}
 .plano .nome{font-size:.9rem;color:var(--muted);margin-top:-6px}

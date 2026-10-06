@@ -301,7 +301,7 @@ function estatico(req, res, url) {
   fs.readFile(alvo, (err, dados) => {
     if (err) return fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (e2, idx) => (e2 ? json(res, 404, { erro: 'Não encontrado' }) : enviar(res, 404, idx, TIPOS_ARQ['.html'])));
     const ext = path.extname(alvo);
-    enviar(res, 200, dados, TIPOS_ARQ[ext] || 'application/octet-stream', { 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=86400' });
+    enviar(res, 200, dados, TIPOS_ARQ[ext] || 'application/octet-stream', { 'cache-control': ['.html', '.css', '.js'].includes(ext) ? 'no-cache' : 'public, max-age=86400' });
   });
 }
 
