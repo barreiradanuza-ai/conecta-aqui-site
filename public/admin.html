@@ -382,7 +382,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   });
 
   // ---------- slides ----------
-  const IMAGENS_PADRAO = ['/images/persona-meio.webp', '/images/persona-inteiro.webp'];
+  const IMAGENS_PADRAO = ['/images/banner-persona.webp', '/images/persona-meio.webp'];
   const ABAS = { todos: 'Todos', internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo' };
   function edSlide(x) {
     const opcoesImg = [...new Set([...IMAGENS_PADRAO, x.imagem].filter(Boolean))].map((u) => `<option value="${esc(u)}" ${u === x.imagem ? 'selected' : ''}>${esc(u.split('/').pop().split('?')[0])}</option>`).join('');

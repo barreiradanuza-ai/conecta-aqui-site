@@ -6,6 +6,8 @@
   const vel = (mb) => (mb >= 1000 ? { n: (mb / 1000).toLocaleString('pt-BR'), u: mb >= 2000 ? 'Gigas' : 'Giga' } : { n: mb, u: 'Mega' });
 
   const ICONE_WA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>';
+  const LOGO_STREAM = { globoplay: '/images/streaming/globoplay.png', paramount: '/images/streaming/paramount.png' };
+  const streamMarca = (x) => (LOGO_STREAM[x.id] ? `<img class="stream-logo" src="${LOGO_STREAM[x.id]}" alt="${esc(x.nome)}">` : esc(x.nome));
   const TIPO_NOME = { internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
   // cada aba mostra também o combo completo quando faz sentido
   const TIPO_ABA = { todos: null, internet: ['internet'], 'combo-tv': ['combo-tv', 'combo-completo'], 'combo-movel': ['combo-movel', 'combo-completo'], 'combo-completo': ['combo-completo'] };
@@ -229,7 +231,7 @@
       <div class="op">${marca(p.operadora)}<span class="tipo-txt">${esc(TIPO_NOME[p.tipo] || 'Internet')}</span></div>
       ${v ? `<div class="vel">${esc(v.n)}<small>${v.u}</small></div>` : ''}
       <div class="nome">${esc(p.nome)}</div>
-      ${p.streaming?.length ? `<div class="streams">${p.streaming.map((x) => `<span class="stream">${esc(x.nome)} incluso${p.mesesStreaming ? ` <small>por ${esc(p.mesesStreaming)} meses</small>` : ''}</span>`).join('')}</div>` : ''}
+      ${p.streaming?.length ? `<div class="streams">${p.streaming.map((x) => `<span class="stream${LOGO_STREAM[x.id] ? ' com-logo' : ''}">${streamMarca(x)} incluso${p.mesesStreaming ? ` <small>por ${esc(p.mesesStreaming)} meses</small>` : ''}</span>`).join('')}</div>` : ''}
       ${p.beneficios?.length ? `<ul class="beneficios">${p.beneficios.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}
       <div class="preco">
         ${temPromo ? `<div class="de">${brl(p.preco)}</div>` : ''}
@@ -270,7 +272,7 @@
 
     const qtd = {}; j.planos.forEach((p) => { qtd[p.operadora.id] = (qtd[p.operadora.id] || 0) + 1; });
     logosBusca = j.operadoras.filter((o) => o.logoUrl).map((o) => o.logoUrl).concat(logosBusca);
-    const fl = $('#flutLogos'); if (fl) fl.innerHTML = j.operadoras.filter((o) => o.logoUrl).slice(0, 4).map((o) => `<img src="${esc(o.logoUrl)}" alt="${esc(o.nome)}">`).join('');
+    const fl = null; if (fl) fl.innerHTML = j.operadoras.filter((o) => o.logoUrl).slice(0, 4).map((o) => `<img src="${esc(o.logoUrl)}" alt="${esc(o.nome)}">`).join('');
     logosBusca.forEach((u) => { const im = new Image(); im.src = u; });
     $('#faixaOps').innerHTML = j.operadoras.map((o) => `<div class="op-card">
         <div class="op-nome">${marca(o)}</div>
@@ -357,7 +359,7 @@
     const ben = (p.beneficios || []).filter((b) => !/R\$/.test(b)).slice(0, 3);
     return `<article class="promo">
       <div class="promo-topo"><span class="promo-logo">${logo}</span><span class="promo-tag">${esc(selo || 'Oferta')}</span></div>
-      ${st ? `<div class="promo-stream">${esc(st.nome)} incluso${p.mesesStreaming ? ` <small>por ${esc(p.mesesStreaming)} meses</small>` : ''}</div>` : `<div class="promo-stream">${esc(TIPO_NOME[p.tipo] || 'Internet')}</div>`}
+      ${st ? `<div class="promo-stream">${streamMarca(st)} incluso${p.mesesStreaming ? ` <small>por ${esc(p.mesesStreaming)} meses</small>` : ''}</div>` : `<div class="promo-stream">${esc(TIPO_NOME[p.tipo] || 'Internet')}</div>`}
       ${v ? `<div class="promo-vel">${esc(v.n)}<small>${v.u}</small></div>` : ''}
       <div class="promo-nome">${esc(p.nome)}</div>
       ${ben.length ? `<ul class="promo-ben">${ben.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}

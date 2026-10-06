@@ -120,6 +120,8 @@ p{margin:0}
 .streams{display:flex;flex-wrap:wrap;gap:6px}
 .stream{display:inline-flex;align-items:center;gap:6px;font:600 .74rem var(--f-txt);color:#5b21b6;background:#f3eefe;border-radius:999px;padding:.35em .75em}
 .stream::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.stream.com-logo{background:#fff;border:1px solid var(--linha);color:var(--tinta);padding:.3em .7em}
+.stream.com-logo::before{display:none}
 .stream small{font-weight:500;opacity:.8}
 .especialista{position:absolute;left:-24px;bottom:32px;display:flex;align-items:center;gap:12px;background:#fff;color:var(--tinta);text-decoration:none;border-radius:14px;padding:10px 18px 10px 10px;box-shadow:var(--sombra-g);transition:transform .15s}
 .especialista:hover{transform:translateY(-2px)}
@@ -365,7 +367,12 @@ body.travado{overflow:hidden}
 /* ---------- topo: visual dos slides ---------- */
 .hero-visual{position:relative;display:grid;grid-template-rows:1fr auto;align-self:stretch}
 .vis{grid-area:1/1;position:relative;transition:opacity .35s ease,transform .35s ease}
-.vis-persona{min-height:540px}
+.vis-persona{align-self:center}
+.banner-img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:24px;box-shadow:var(--sombra-g)}
+.esp-ico{width:44px;height:44px;border-radius:50%;background:#25d366;color:#fff;display:grid;place-items:center;flex:none}
+.esp-ico svg{width:24px;height:24px}
+.stream-logo{height:16px;width:auto;display:block}
+.promo-stream .stream-logo{height:26px}
 /* persona */
 .vis-persona .disco{position:absolute;left:50%;bottom:0;width:min(440px,92%);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;
   background:radial-gradient(circle at 30% 25%,#22c8f0 0%,#0a52c9 45%,#0040a6 70%,rgba(0,64,166,.0) 71%)}
@@ -428,12 +435,11 @@ body.travado{overflow:hidden}
 
 @media (max-width:960px){
   .hero-visual{max-width:460px;width:100%;margin-inline:auto}
-  .vis-persona{min-height:460px}
+
   .faixa-in{grid-template-columns:1fr;gap:20px}
 }
 @media (max-width:640px){
-  .vis-persona{min-height:400px}
-  .persona{height:400px}
+
   .promo-preco .btn{width:100%}
   .flut-ops{left:-4px;bottom:16%}
   .flut-vel{right:-4px}
