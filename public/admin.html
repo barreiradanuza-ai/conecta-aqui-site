@@ -6,25 +6,25 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Painel · Conecta Aqui</title>
 <link rel="icon" href="/images/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--marinho:#071b45;--turquesa:#00baeb;--turq-esc:#0089b3;--borda:#d5e2ec;--fundo:#f5f8fc;--muted:#5c7190;--texto:#0b1f3a;--erro:#c62828}
 *{box-sizing:border-box}
-body{margin:0;font-family:"DM Sans",system-ui,sans-serif;background:var(--fundo);color:var(--texto)}
-h1,h2,h3{font-family:"Plus Jakarta Sans",sans-serif;margin:0 0 .5em}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--fundo);color:var(--texto)}
+h1,h2,h3{font-family:Montserrat,sans-serif;margin:0 0 .5em}
 .oculto{display:none!important}
-.btn{font:700 .92rem "Plus Jakarta Sans",sans-serif;border:0;border-radius:10px;padding:.65em 1.1em;cursor:pointer;background:var(--marinho);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn{font:700 .92rem Montserrat,sans-serif;border:0;border-radius:10px;padding:.65em 1.1em;cursor:pointer;background:var(--marinho);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .btn.prim{background:var(--turquesa);color:var(--marinho)}
 .btn.claro{background:#fff;color:var(--marinho);border:1.5px solid var(--borda)}
 .btn.perigo{background:#fff;color:var(--erro);border:1.5px solid #f3c4c4}
 .btn:disabled{opacity:.5;cursor:default}
-input,select,textarea{font:500 .95rem "DM Sans",sans-serif;padding:.6em .8em;border:1.5px solid var(--borda);border-radius:10px;width:100%;background:#fff;color:var(--texto)}
+input,select,textarea{font:500 .95rem Inter,sans-serif;padding:.6em .8em;border:1.5px solid var(--borda);border-radius:10px;width:100%;background:#fff;color:var(--texto)}
 label{display:grid;gap:4px;font-weight:600;font-size:.85rem}
 .topo{background:var(--marinho);color:#fff;padding:0 24px;height:64px;display:flex;align-items:center;gap:24px}
-.topo b{font:800 1.1rem "Plus Jakarta Sans"}
+.topo b{font:800 1.1rem Montserrat}
 .topo b span{color:var(--turquesa)}
 .abas{display:flex;gap:4px;margin-left:12px}
-.abas button{background:transparent;border:0;color:#cfe0f2;font:600 .95rem "Plus Jakarta Sans";padding:.6em 1em;border-radius:8px;cursor:pointer}
+.abas button{background:transparent;border:0;color:#cfe0f2;font:600 .95rem Montserrat;padding:.6em 1em;border-radius:8px;cursor:pointer}
 .abas button.ativa{background:rgba(255,255,255,.12);color:#fff}
 .topo .sair{margin-left:auto}
 main{padding:24px;max-width:1300px;margin:auto}
@@ -33,7 +33,7 @@ main{padding:24px;max-width:1300px;margin:auto}
 .barra .busca{max-width:260px}
 .esp{flex:1}
 table{width:100%;border-collapse:collapse;font-size:.92rem}
-th{text-align:left;font:700 .78rem "Plus Jakarta Sans";text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px 8px;border-bottom:2px solid var(--borda);white-space:nowrap}
+th{text-align:left;font:700 .78rem Montserrat;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px 8px;border-bottom:2px solid var(--borda);white-space:nowrap}
 td{padding:10px 8px;border-bottom:1px solid #edf2f7;vertical-align:middle}
 tr.inativo td{opacity:.45}
 .tab-wrap{overflow-x:auto}
@@ -50,7 +50,18 @@ dialog::backdrop{background:rgba(7,27,69,.55)}
 .chk{display:flex;gap:8px;align-items:center;font-weight:600}
 .chk input{width:auto}
 .acoes{display:flex;gap:8px;justify-content:flex-end}
-.ops-linha{display:grid;grid-template-columns:1.2fr 70px 1.4fr 1.6fr 1.6fr 80px 40px;gap:8px;align-items:end;margin-bottom:10px}
+.ops-linha{display:grid;grid-template-columns:64px 1.1fr 64px 1.2fr 1.5fr 1.5fr 76px 40px;gap:8px;align-items:end;padding:12px 0;border-bottom:1px solid #edf2f7}
+.logo-box{width:64px;height:40px;border:1.5px dashed var(--borda);border-radius:10px;display:grid;place-items:center;overflow:hidden;cursor:pointer;font-size:.7rem;color:var(--muted);text-align:center;background:#fff}
+.logo-box img{width:100%;height:100%;object-fit:contain}
+.slide-ed{display:grid;grid-template-columns:120px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid #edf2f7}
+.slide-ed .mini{width:120px;aspect-ratio:4/5;border-radius:12px;object-fit:cover;background:#eef2f6}
+.slide-ed .g2{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.slide-ed .acoes{justify-content:flex-start}
+.mon{border:1px solid var(--borda);border-radius:14px;padding:16px;margin-bottom:16px}
+.mon h3{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mon table{margin-top:10px}
+.mon td small{color:var(--muted)}
+.streams-chk{display:flex;flex-wrap:wrap;gap:8px 16px}
 .ops-linha input[type=color]{padding:2px;height:40px}
 .dica{font-size:.85rem;color:var(--muted)}
 pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:auto;font-size:.85rem}
@@ -73,6 +84,8 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" height="30" style="height:30px;width:auto"><b style="color:#9fb6d6;font-weight:600">Painel</b>
     <nav class="abas" id="abas">
       <button data-aba="planos" class="ativa">Planos</button>
+      <button data-aba="ofertas">Ofertas das operadoras <span id="badgeMon" class="pill oculto" style="background:#ffe7c2;color:#8a5300">!</span></button>
+      <button data-aba="slides">Slides</button>
       <button data-aba="operadoras">Operadoras</button>
       <button data-aba="contatos">Contatos</button>
       <button data-aba="testar">Testar CEP</button>
@@ -102,11 +115,29 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       </div>
     </div>
 
+    <!-- OFERTAS DAS OPERADORAS (monitor) -->
+    <div data-painel="ofertas" class="oculto">
+      <div class="card">
+        <div class="barra"><h2 style="margin:0">Ofertas nos sites das operadoras</h2><span class="esp"></span><button class="btn prim" id="monVerificar">Verificar agora</button></div>
+        <p class="dica">A cada 12 horas o sistema lê as páginas de ofertas das operadoras (configuradas na aba Operadoras) e lista as velocidades, preços e streamings encontrados. Quando algo muda, aparece um aviso aqui. Nada muda no site sozinho: confira e use "Criar plano" para cadastrar ou atualize o plano existente. A leitura é automática e pode trazer repetições; confirme sempre no site da operadora.</p>
+        <div id="listaMon"></div>
+      </div>
+    </div>
+
+    <!-- SLIDES -->
+    <div data-painel="slides" class="oculto">
+      <div class="card">
+        <div class="barra"><h2 style="margin:0">Slides do topo do site</h2><span class="esp"></span><button class="btn claro" id="addSlide">+ Adicionar slide</button><button class="btn prim" id="salvarSlides">Salvar slides</button></div>
+        <p class="dica">No título, coloque entre *asteriscos* o trecho que deve aparecer em destaque. Ex.: Internet com *Globoplay* incluso. Os slides trocam a cada 6 segundos.</p>
+        <div id="listaSlides"></div>
+      </div>
+    </div>
+
     <!-- OPERADORAS -->
     <div data-painel="operadoras" class="oculto">
       <div class="card">
         <h2>Operadoras</h2>
-        <p class="dica">"Cobertura" diz de onde vem a lista de CEPs: <b>mcc:ceps-claro</b>, <b>mcc:ceps-nio</b> e <b>mcc:ceps-tim</b> vêm do app Minha Casa Conectada. Use <b>todas</b> para quem atende qualquer CEP e <b>nenhuma</b> para esconder dos resultados.</p>
+        <p class="dica"><b>Logo:</b> clique no quadro para enviar o logo oficial (PNG, JPG ou WEBP, fundo transparente ou branco). Use os logos fornecidos pela operadora no seu kit de parceiro. <b>Site de ofertas:</b> página que o monitor confere a cada 12 horas. "Cobertura" diz de onde vem a lista de CEPs: <b>mcc:ceps-claro</b>, <b>mcc:ceps-nio</b> e <b>mcc:ceps-tim</b> vêm do app Minha Casa Conectada. Use <b>todas</b> para quem atende qualquer CEP e <b>nenhuma</b> para esconder dos resultados.</p>
         <div id="listaOps"></div>
         <div class="barra" style="margin-top:12px">
           <button class="btn claro" id="addOp">+ Adicionar operadora</button><span class="esp"></span>
@@ -120,7 +151,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       <div class="card">
         <div class="barra"><h2 style="margin:0">Contatos recebidos</h2><span class="esp"></span><a class="btn claro" href="/admin/api/contatos/exportar">Exportar planilha</a></div>
         <div class="tab-wrap"><table>
-          <thead><tr><th>Data</th><th>Nome</th><th>Telefone</th><th>CEP</th><th>Cidade</th><th>Plano</th><th>Origem</th></tr></thead>
+          <thead><tr><th>Data</th><th>Nome</th><th>Telefone</th><th>Endereço</th><th>Cidade</th><th>Plano</th><th>Origem</th></tr></thead>
           <tbody id="tabContatos"></tbody>
         </table></div>
       </div>
@@ -144,7 +175,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     <h3 id="dlgTitulo">Novo plano</h3>
     <div class="g2">
       <label>Operadora<select name="operadoraId" required></select></label>
-      <label>Tipo<select name="tipo"><option value="internet">Internet</option><option value="combo-tv">Internet + TV</option><option value="combo-movel">Internet + Celular</option><option value="combo-completo">Combo completo (Internet + TV + Celular)</option><option value="movel">Só celular</option><option value="tv">Só TV</option></select></label>
+      <label>Tipo<select name="tipo"><option value="internet">Internet residencial</option><option value="combo-tv">Internet + TV</option><option value="combo-movel">Internet + Celular</option><option value="combo-completo">Combo completo (Internet + TV + Celular)</option><option value="movel">Só celular</option><option value="tv">Só TV</option></select></label>
     </div>
     <label>Nome do plano<input name="nome" required maxlength="100" placeholder="Ex.: Fibra 500 Mega"></label>
     <div class="g2">
@@ -152,6 +183,10 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       <label>Preço (R$/mês)<input name="preco" inputmode="decimal" required placeholder="119,90"></label>
       <label>Preço promocional<input name="precoPromo" inputmode="decimal" placeholder="opcional"></label>
       <label>Promoção por (meses)<input name="mesesPromo" inputmode="numeric" placeholder="opcional"></label>
+    </div>
+    <div><b style="font-size:.85rem">Streaming incluso</b>
+      <div class="streams-chk" id="chkStreams"></div>
+      <label style="max-width:220px;margin-top:8px">Streaming incluso por (meses)<input name="mesesStreaming" inputmode="numeric" placeholder="vazio = sem prazo"></label>
     </div>
     <label>Benefícios (um por linha)<textarea name="beneficios" rows="3" placeholder="Wi-Fi incluso&#10;Instalação grátis"></textarea></label>
     <label>Link de contratação (opcional)<input name="linkContratacao" placeholder="https://…"></label>
@@ -170,7 +205,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
 <dialog id="dlgImportar">
   <form class="form" id="formImportar">
     <h3>Importar planilha de planos</h3>
-    <p class="dica">Salve a planilha como <b>CSV</b> (no Excel: Arquivo → Salvar como → CSV). Dica: exporte primeiro, edite e importe de volta. Linhas com <b>id</b> atualizam o plano existente; linhas sem id criam planos novos. Colunas: operadoraId, nome, tipo, velocidadeMbps, preco, precoPromo, mesesPromo, beneficios (separe com |), tipo (internet, combo-tv, combo-movel, combo-completo), destaque, ativo, apenasCidadePromo, linkContratacao, ordem.</p>
+    <p class="dica">Salve a planilha como <b>CSV</b> (no Excel: Arquivo → Salvar como → CSV). Dica: exporte primeiro, edite e importe de volta. Linhas com <b>id</b> atualizam o plano existente; linhas sem id criam planos novos. Colunas: operadoraId, nome, tipo, velocidadeMbps, preco, precoPromo, mesesPromo, beneficios (separe com |), streaming (globoplay, paramount, max, netflix, youtube, disney, prime, deezer, apple; separe com |), mesesStreaming, tipo (internet, combo-tv, combo-movel, combo-completo), destaque, ativo, apenasCidadePromo, linkContratacao, ordem.</p>
     <input type="file" name="arquivo" accept=".csv,text/csv" required>
     <label class="chk"><input type="checkbox" name="substituir"> Apagar todos os planos atuais e usar só os da planilha</label>
     <div id="impErro" class="msg erro oculto"></div>
@@ -184,8 +219,10 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const brl = (n) => (n == null ? '—' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
-  const TIPOS = { internet: 'Internet', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
+  const TIPOS = { internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
   let planos = [], operadoras = [], editando = null;
+  const STREAMS = { globoplay: 'Globoplay', paramount: 'Paramount+', max: 'Max', netflix: 'Netflix', youtube: 'YouTube Premium', disney: 'Disney+', prime: 'Prime Video', deezer: 'Deezer', apple: 'Apple TV+' };
+  $('#chkStreams').innerHTML = Object.entries(STREAMS).map(([k, n]) => `<label class="chk"><input type="checkbox" name="st_${k}"> ${n}</label>`).join('');
 
   async function api(caminho, opts = {}) {
     const r = await fetch('/admin/api' + caminho, { ...opts, headers: { 'x-requested-with': 'painel', ...(opts.body && typeof opts.body === 'string' && !opts.csv ? { 'content-type': 'application/json' } : {}), ...(opts.headers || {}) } });
@@ -211,6 +248,8 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     $$('#abas button').forEach((x) => x.classList.toggle('ativa', x === b));
     $$('[data-painel]').forEach((p) => p.classList.toggle('oculto', p.dataset.painel !== b.dataset.aba));
     if (b.dataset.aba === 'contatos') carregarContatos();
+    if (b.dataset.aba === 'slides') carregarSlides();
+    if (b.dataset.aba === 'ofertas') carregarMon();
   }));
 
   async function iniciar() {
@@ -218,7 +257,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       const st = await api('/status');
       $('#telaLogin').classList.add('oculto'); $('#telaPainel').classList.remove('oculto');
       $('#avisoDemo').classList.toggle('oculto', !st.modoDemo);
-      await carregarOperadoras(); await carregarPlanos();
+      await carregarOperadoras(); await carregarPlanos(); carregarMon().catch(() => {});
     } catch { mostrarLogin(); }
   }
 
@@ -232,7 +271,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       .sort((a, b) => nomeOp(a.operadoraId).localeCompare(nomeOp(b.operadoraId)) || a.ordem - b.ordem);
     $('#tabPlanos').innerHTML = lista.map((p) => `<tr class="${p.ativo ? '' : 'inativo'}">
       <td><span class="bola" style="background:${esc(corOp(p.operadoraId))}"></span>${esc(nomeOp(p.operadoraId))}</td>
-      <td><b>${esc(p.nome)}</b>${p.destaque ? ' <span class="pill">destaque</span>' : ''}${p.apenasCidadePromo ? ' <span class="pill cinza">cidade promo</span>' : ''}</td>
+      <td><b>${esc(p.nome)}</b>${p.destaque ? ' <span class="pill">destaque</span>' : ''}${p.apenasCidadePromo ? ' <span class="pill cinza">cidade promo</span>' : ''}${(p.streaming || []).map((k) => ` <span class="pill" style="background:#f3eefe;color:#5b21b6">${esc(STREAMS[k] || k)}</span>`).join('')}</td>
       <td>${esc(TIPOS[p.tipo] || p.tipo)}</td>
       <td>${p.velocidadeMbps ? esc(p.velocidadeMbps) + ' Mega' : '—'}</td>
       <td>${brl(p.preco)}</td>
@@ -252,13 +291,14 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   $('#filtroOp').addEventListener('change', renderPlanos);
 
   const fP = $('#formPlano');
-  function abrirPlano(p) {
+  function abrirPlano(p, prefill) {
     editando = p || null;
     $('#dlgTitulo').textContent = p ? 'Editar plano' : 'Novo plano';
     fP.reset(); $('#planoErro').classList.add('oculto');
     fP.operadoraId.innerHTML = operadoras.map((o) => `<option value="${esc(o.id)}">${esc(o.nome)}${o.ativo ? '' : ' (inativa)'}</option>`).join('');
-    const v = p || { ativo: true, tipo: 'internet' };
-    for (const k of ['operadoraId', 'tipo', 'nome', 'velocidadeMbps', 'mesesPromo', 'linkContratacao', 'ordem']) if (v[k] != null) fP[k].value = v[k];
+    const v = p || prefill || { ativo: true, tipo: 'internet' };
+    for (const k of ['operadoraId', 'tipo', 'nome', 'velocidadeMbps', 'mesesPromo', 'mesesStreaming', 'linkContratacao', 'ordem']) if (v[k] != null) fP[k].value = v[k];
+    for (const k of Object.keys(STREAMS)) fP['st_' + k].checked = (v.streaming || []).includes(k);
     for (const k of ['preco', 'precoPromo']) if (v[k] != null) fP[k].value = String(v[k]).replace('.', ',');
     fP.beneficios.value = (v.beneficios || []).join('\n');
     for (const k of ['destaque', 'ativo', 'apenasCidadePromo']) fP[k].checked = !!v[k];
@@ -268,7 +308,8 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   $('#cancelarPlano').addEventListener('click', () => $('#dlgPlano').close());
   fP.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const d = Object.fromEntries(['operadoraId', 'tipo', 'nome', 'velocidadeMbps', 'preco', 'precoPromo', 'mesesPromo', 'linkContratacao', 'ordem'].map((k) => [k, fP[k].value]));
+    const d = Object.fromEntries(['operadoraId', 'tipo', 'nome', 'velocidadeMbps', 'preco', 'precoPromo', 'mesesPromo', 'mesesStreaming', 'linkContratacao', 'ordem'].map((k) => [k, fP[k].value]));
+    d.streaming = Object.keys(STREAMS).filter((k) => fP['st_' + k].checked);
     d.beneficios = fP.beneficios.value.split('\n'); d.destaque = fP.destaque.checked; d.ativo = fP.ativo.checked; d.apenasCidadePromo = fP.apenasCidadePromo.checked;
     try {
       await api(editando ? '/planos/' + editando.id : '/planos', { method: editando ? 'PUT' : 'POST', body: JSON.stringify(d) });
@@ -301,31 +342,139 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   }
   function linhaOp(o) {
     return `<div class="ops-linha" data-id="${esc(o.id || '')}">
+      <label>Logo<span class="logo-box" title="Enviar logo">${o.logoUrl ? `<img src="${esc(o.logoUrl)}" alt="">` : 'enviar'}</span>
+        <input type="file" accept="image/png,image/jpeg,image/webp" hidden data-logo><input type="hidden" name="logoUrl" value="${esc(o.logoUrl || '')}"></label>
       <label>Nome<input name="nome" value="${esc(o.nome)}"></label>
       <label>Cor<input type="color" name="cor" value="${esc(o.cor || '#0f3a89')}"></label>
       <label>Cobertura<input name="cobertura" value="${esc(o.cobertura || 'nenhuma')}" list="listasCob"></label>
-      <label>Logo (link https)<input name="logoUrl" value="${esc(o.logoUrl || '')}" placeholder="opcional"></label>
+      <label>Site de ofertas<input name="siteOfertas" value="${esc(o.siteOfertas || '')}" placeholder="https://…"></label>
       <label>Link de contratação<input name="linkContratacao" value="${esc(o.linkContratacao || '')}" placeholder="opcional"></label>
       <label class="chk"><input type="checkbox" name="ativo" ${o.ativo !== false ? 'checked' : ''}> Ativa</label>
       <button type="button" class="btn perigo" data-rm title="Remover">×</button>
     </div>`;
   }
+  function ligarLinhasOp() {
+    $$('#listaOps .ops-linha').forEach((l) => {
+      if (l.dataset.ligado) return; l.dataset.ligado = '1';
+      $('[data-rm]', l).addEventListener('click', () => l.remove());
+      const inp = $('[data-logo]', l);
+      $('.logo-box', l).addEventListener('click', () => inp.click());
+      inp.addEventListener('change', async () => {
+        const f = inp.files[0]; if (!f) return;
+        const nome = 'logo-' + ($('[name=nome]', l).value || 'operadora').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-');
+        try {
+          const r = await api('/imagem?nome=' + encodeURIComponent(nome), { method: 'POST', body: f, headers: { 'content-type': f.type } });
+          $('[name=logoUrl]', l).value = r.url; $('.logo-box', l).innerHTML = `<img src="${esc(r.url)}" alt="">`;
+          flash('Logo enviado. Clique em "Salvar operadoras" para confirmar.');
+        } catch (e) { flash(e.message, 'erro'); }
+      });
+    });
+  }
   function renderOps() {
     $('#listaOps').innerHTML = operadoras.map(linhaOp).join('') + '<datalist id="listasCob"><option value="mcc:ceps-claro"><option value="mcc:ceps-nio"><option value="mcc:ceps-tim"><option value="todas"><option value="nenhuma"></datalist>';
-    $$('#listaOps [data-rm]').forEach((b) => b.addEventListener('click', () => b.closest('.ops-linha').remove()));
+    ligarLinhasOp();
   }
-  $('#addOp').addEventListener('click', () => { $('#listaOps').insertAdjacentHTML('afterbegin', linhaOp({ nome: '', cobertura: 'nenhuma', ativo: true })); $('#listaOps [data-rm]').addEventListener('click', (e) => e.target.closest('.ops-linha').remove()); });
+  $('#addOp').addEventListener('click', () => { $('#listaOps').insertAdjacentHTML('afterbegin', linhaOp({ nome: '', cobertura: 'nenhuma', ativo: true })); ligarLinhasOp(); });
   $('#salvarOps').addEventListener('click', async () => {
-    const lista = $$('#listaOps .ops-linha').map((l) => ({ id: l.dataset.id || undefined, nome: $('[name=nome]', l).value, cor: $('[name=cor]', l).value, cobertura: $('[name=cobertura]', l).value.trim(), logoUrl: $('[name=logoUrl]', l).value.trim(), linkContratacao: $('[name=linkContratacao]', l).value.trim(), ativo: $('[name=ativo]', l).checked }));
+    const lista = $$('#listaOps .ops-linha').map((l) => ({ id: l.dataset.id || undefined, nome: $('[name=nome]', l).value, cor: $('[name=cor]', l).value, cobertura: $('[name=cobertura]', l).value.trim(), logoUrl: $('[name=logoUrl]', l).value.trim(), siteOfertas: $('[name=siteOfertas]', l).value.trim(), linkContratacao: $('[name=linkContratacao]', l).value.trim(), ativo: $('[name=ativo]', l).checked }));
     try { await api('/operadoras', { method: 'PUT', body: JSON.stringify(lista) }); flash('Operadoras salvas.'); await carregarOperadoras(); renderPlanos(); }
     catch (err) { flash(err.message, 'erro'); }
+  });
+
+  // ---------- slides ----------
+  const IMAGENS_PADRAO = ['/images/garoto-hero.webp', '/images/garoto-atendimento.webp', '/images/garoto-corpo.webp', '/images/garoto-rosto.webp'];
+  const ABAS = { todos: 'Todos', internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo' };
+  function edSlide(x) {
+    const opcoesImg = [...new Set([...IMAGENS_PADRAO, x.imagem].filter(Boolean))].map((u) => `<option value="${esc(u)}" ${u === x.imagem ? 'selected' : ''}>${esc(u.split('/').pop().split('?')[0])}</option>`).join('');
+    return `<div class="slide-ed">
+      <div><img class="mini" src="${esc(x.imagem || IMAGENS_PADRAO[0])}" alt=""></div>
+      <div class="form" style="padding:0;gap:10px">
+        <div class="g2">
+          <label>Selo (texto pequeno acima)<input name="selo" value="${esc(x.selo || '')}" maxlength="50"></label>
+          <label>Foto<select name="imagem">${opcoesImg}</select></label>
+          <label>Enviar outra foto<input type="file" accept="image/png,image/jpeg,image/webp" data-foto></label>
+        </div>
+        <label>Título<input name="titulo" value="${esc(x.titulo || '')}" maxlength="120"></label>
+        <label>Subtítulo<input name="subtitulo" value="${esc(x.subtitulo || '')}" maxlength="220"></label>
+        <div class="acoes">
+          <label class="chk"><input type="checkbox" name="ativo" ${x.ativo !== false ? 'checked' : ''}> Ativo</label>
+          <span class="esp"></span>
+          <button type="button" class="btn claro" data-sobe>↑</button><button type="button" class="btn claro" data-desce>↓</button>
+          <button type="button" class="btn perigo" data-rm-slide>Remover</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  function ligarSlides() {
+    $$('#listaSlides .slide-ed').forEach((el) => {
+      if (el.dataset.ligado) return; el.dataset.ligado = '1';
+      $('[name=imagem]', el).addEventListener('change', (e) => { $('.mini', el).src = e.target.value; });
+      $('[data-rm-slide]', el).addEventListener('click', () => el.remove());
+      $('[data-sobe]', el).addEventListener('click', () => { if (el.previousElementSibling) el.parentNode.insertBefore(el, el.previousElementSibling); });
+      $('[data-desce]', el).addEventListener('click', () => { if (el.nextElementSibling) el.parentNode.insertBefore(el.nextElementSibling, el); });
+      $('[data-foto]', el).addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        try {
+          const r = await api('/imagem?nome=slide-' + Date.now(), { method: 'POST', body: f, headers: { 'content-type': f.type } });
+          const sel = $('[name=imagem]', el); sel.insertAdjacentHTML('beforeend', `<option value="${esc(r.url.split('?')[0])}">${esc(f.name)}</option>`); sel.value = r.url.split('?')[0]; $('.mini', el).src = r.url;
+          flash('Foto enviada. Clique em "Salvar slides" para confirmar.');
+        } catch (er) { flash(er.message, 'erro'); }
+      });
+    });
+  }
+  async function carregarSlides() { const lista = await api('/slides'); $('#listaSlides').innerHTML = lista.map(edSlide).join(''); ligarSlides(); }
+  $('#addSlide').addEventListener('click', () => { $('#listaSlides').insertAdjacentHTML('beforeend', edSlide({ titulo: '', subtitulo: '', selo: '', imagem: IMAGENS_PADRAO[0], ativo: true })); ligarSlides(); });
+  $('#salvarSlides').addEventListener('click', async () => {
+    const lista = $$('#listaSlides .slide-ed').map((el) => ({ selo: $('[name=selo]', el).value, titulo: $('[name=titulo]', el).value, subtitulo: $('[name=subtitulo]', el).value, imagem: $('[name=imagem]', el).value, ativo: $('[name=ativo]', el).checked }));
+    try { await api('/slides', { method: 'PUT', body: JSON.stringify(lista) }); flash('Slides salvos. Já estão no site.'); carregarSlides(); }
+    catch (er) { flash(er.message, 'erro'); }
+  });
+
+  // ---------- monitor de ofertas ----------
+  const STREAM_MAP = { globoplay: 'globoplay', 'paramount+': 'paramount', paramount: 'paramount', max: 'max', 'hbo max': 'max', netflix: 'netflix', 'youtube premium': 'youtube', 'disney+': 'disney', disney: 'disney', 'prime video': 'prime', deezer: 'deezer', 'apple tv+': 'apple', 'apple tv': 'apple' };
+  let monDados = {};
+  function renderMon() {
+    const ops = Object.fromEntries(operadoras.map((o) => [o.id, o]));
+    const ids = Object.keys(monDados);
+    let mudou = 0;
+    $('#listaMon').innerHTML = ids.length ? ids.map((id) => {
+      const m = monDados[id]; const novo = m.hash && m.hash !== m.revisadoHash; if (novo) mudou++;
+      return `<div class="mon">
+        <h3>${esc(ops[id]?.nome || id)}
+          ${m.ok === false ? `<span class="pill" style="background:#fdecec;color:#c62828">erro: ${esc(m.erro)}</span>` : novo ? '<span class="pill" style="background:#ffe7c2;color:#8a5300">mudou, revisar</span>' : '<span class="pill">sem mudanças</span>'}
+          <small class="dica" style="font-weight:400">verificado em ${m.verificadoEm ? new Date(m.verificadoEm).toLocaleString('pt-BR') : '—'}</small>
+          <span class="esp"></span>
+          <a class="btn claro" href="${esc(m.url || '#')}" target="_blank" rel="noopener">Abrir site</a>
+          ${novo ? `<button class="btn prim" data-revisado="${esc(id)}">Marcar como revisado</button>` : ''}
+        </h3>
+        ${m.vazio ? '<p class="dica">Nenhuma oferta encontrada no texto da página. O site pode montar os preços só no navegador; confira manualmente.</p>' : ''}
+        ${(m.ofertas || []).length ? `<div class="tab-wrap"><table><thead><tr><th>Velocidade</th><th>Preços encontrados</th><th>Streaming citado</th><th>Trecho</th><th></th></tr></thead><tbody>
+          ${m.ofertas.map((o, i) => `<tr><td><b>${o.velocidadeMbps >= 1000 ? o.velocidadeMbps / 1000 + ' Giga' : o.velocidadeMbps + ' Mega'}</b></td><td>${o.precos.map(brl).join(' · ')}</td><td>${esc(o.streaming.join(', ')) || '—'}</td><td><small>${esc(o.trecho || '')}</small></td><td><button class="btn claro" data-criar="${esc(id)}:${i}">Criar plano</button></td></tr>`).join('')}
+        </tbody></table></div>` : ''}
+      </div>`;
+    }).join('') : '<p class="dica">Ainda não houve verificação. Clique em "Verificar agora".</p>';
+    $('#badgeMon').classList.toggle('oculto', !mudou);
+    $$('[data-revisado]').forEach((b) => b.addEventListener('click', async () => { await api('/monitor/' + b.dataset.revisado + '/revisado', { method: 'POST' }); carregarMon(); }));
+    $$('[data-criar]').forEach((b) => b.addEventListener('click', () => {
+      const [id, i] = b.dataset.criar.split(':'); const o = monDados[id].ofertas[+i];
+      const ord = [...o.precos].sort((a, c) => a - c);
+      abrirPlano(null, { operadoraId: id, tipo: 'internet', nome: `${ops[id]?.nome || id} ${o.velocidadeMbps >= 1000 ? o.velocidadeMbps / 1000 + ' Giga' : o.velocidadeMbps + ' Mega'}`, velocidadeMbps: o.velocidadeMbps,
+        preco: ord.length > 1 ? ord[ord.length - 1] : ord[0], precoPromo: ord.length > 1 ? ord[0] : null, streaming: o.streaming.map((x) => STREAM_MAP[x]).filter(Boolean), ativo: true });
+    }));
+  }
+  async function carregarMon() { monDados = await api('/monitor'); renderMon(); }
+  $('#monVerificar').addEventListener('click', async (e) => {
+    e.target.disabled = true; e.target.textContent = 'Verificando… (até 1 minuto)';
+    try { monDados = await api('/monitor/verificar', { method: 'POST' }); renderMon(); flash('Verificação concluída.'); }
+    catch (er) { flash(er.message, 'erro'); }
+    e.target.disabled = false; e.target.textContent = 'Verificar agora';
   });
 
   // ---------- contatos ----------
   async function carregarContatos() {
     const lista = await api('/contatos');
     const ORIG = { plano: 'Escolheu plano', 'sem-cobertura': 'Sem cobertura', contato: 'Contato' };
-    $('#tabContatos').innerHTML = lista.map((c) => `<tr><td>${new Date(c.criadoEm).toLocaleString('pt-BR')}</td><td>${esc(c.nome)}</td><td><a href="https://wa.me/55${esc(c.telefone.replace(/^55/, ''))}" target="_blank" rel="noopener">${esc(c.telefone)}</a></td><td>${esc(c.cep)}</td><td>${esc(c.cidade)}${c.uf ? '/' + esc(c.uf) : ''}</td><td>${esc(c.planoNome)}${c.operadora ? ' · ' + esc(c.operadora) : ''}</td><td>${esc(ORIG[c.origem] || c.origem)}</td></tr>`).join('') || '<tr><td colspan="7" class="dica">Nenhum contato ainda.</td></tr>';
+    $('#tabContatos').innerHTML = lista.map((c) => `<tr><td>${new Date(c.criadoEm).toLocaleString('pt-BR')}</td><td>${esc(c.nome)}</td><td><a href="https://wa.me/55${esc(c.telefone.replace(/^55/, ''))}" target="_blank" rel="noopener">${esc(c.telefone)}</a></td><td>${esc([c.rua, c.numero].filter(Boolean).join(', '))}${c.bairro ? ' · ' + esc(c.bairro) : ''}<br><small class="dica">CEP ${esc(c.cep)}</small></td><td>${esc(c.cidade)}${c.uf ? '/' + esc(c.uf) : ''}</td><td>${esc(c.planoNome)}${c.operadora ? ' · ' + esc(c.operadora) : ''}</td><td>${esc(ORIG[c.origem] || c.origem)}</td></tr>`).join('') || '<tr><td colspan="7" class="dica">Nenhum contato ainda.</td></tr>';
   }
 
   // ---------- testar ----------

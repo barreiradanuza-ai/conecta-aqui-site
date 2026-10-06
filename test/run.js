@@ -30,6 +30,11 @@ const mcc = http.createServer((req, res) => {
     });
     return;
   }
+  if (u.pathname === '/oferta-tim') {
+    res.setHeader('content-type', 'text/html; charset=utf-8');
+    return res.end(`<html><body><script>var x="999 MEGA R$ 1,00"</script><div class="card"><h3>500 MEGA</h3><p>de R$ 129,99 por <b>R$&nbsp;89,99</b>/mês</p><li>Wi-Fi grátis</li></div>
+      <div class="card"><h3>600 MEGA</h3><p>Com Paramount+ incluso</p><p>R$ 149,99 por R$ 109,99</p></div><div><h3>1 GIGA</h3><p>R$ ${global.precoGiga || '199,99'}</p></div></body></html>`);
+  }
   const m = u.pathname.match(/^\/api\/mcc\/admin\/([a-z-]+)$/);
   if (m) {
     if (!/session-token=tok\d+/.test(ck)) { res.statusCode = 401; return res.end(JSON.stringify({ error: 'Não autenticado' })); }
@@ -148,6 +153,48 @@ const mcc = http.createServer((req, res) => {
     assert.equal((await fetchOrig(B + '/')).status, 200);
     assert.equal((await fetchOrig(B + '/admin')).status, 200);
     const r = await fetchOrig(B + '/..%2f..%2fserver.js'); assert.notEqual(await r.text().then((t) => t.includes('require(')), true);
+  });
+
+  await t('Slides: público lista ativos; painel edita e valida', async () => {
+    const pub = await get('/api/slides'); assert.ok(pub.j.length >= 1); assert.ok(pub.j[0].titulo.includes('*melhor plano*'));
+    assert.equal((await send('/admin/api/slides', 'PUT', [{ titulo: '', ativo: true }], H)).s, 400);
+    assert.equal((await send('/admin/api/slides', 'PUT', [{ titulo: 'A', ativo: false }], H)).s, 400);
+    const r = await send('/admin/api/slides', 'PUT', [{ titulo: 'Novo *slide*', imagem: 'javascript:alert(1)', ativo: true }, { titulo: 'Oculto', ativo: false }], H);
+    assert.equal(r.s, 200); assert.equal(r.j[0].imagem, '/images/garoto-hero.webp');
+    assert.equal((await get('/api/slides')).j.length, 1);
+  });
+  await t('Upload de logo: aceita PNG, recusa outros formatos, serve o arquivo', async () => {
+    const png = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a6a30000000049454e44ae426082', 'hex');
+    const rr = await fetchOrig(B + '/admin/api/imagem?nome=logo-claro', { method: 'POST', body: png, headers: { ...H, 'content-type': 'image/png' } });
+    const j = await rr.json(); assert.equal(rr.status, 200); assert.match(j.url, /^\/uploads\/logo-claro\.png\?v=\d+$/);
+    const img = await fetchOrig(B + j.url); assert.equal(img.status, 200); assert.equal(img.headers.get('content-type'), 'image/png');
+    const bad = await fetchOrig(B + '/admin/api/imagem?nome=x', { method: 'POST', body: '<svg onload=alert(1)>', headers: { ...H, 'content-type': 'image/svg+xml' } });
+    assert.equal(bad.status, 400);
+    assert.equal((await fetchOrig(B + '/uploads/..%2fplanos.json')).status, 404);
+    const ops = (await get('/admin/api/operadoras', H)).j; ops.find((o) => o.id === 'claro').logoUrl = j.url;
+    const sv = await send('/admin/api/operadoras', 'PUT', ops, H); assert.equal(sv.j.find((o) => o.id === 'claro').logoUrl, j.url);
+  });
+  await t('Plano com streaming aparece com o nome do serviço', async () => {
+    const r = await send('/admin/api/planos', 'POST', { operadoraId: 'tim', nome: 'TIM 600 c/ Paramount', preco: 149.99, precoPromo: 109.99, velocidadeMbps: 600, streaming: ['paramount', 'xyz'] }, H);
+    assert.deepEqual(r.j.streaming, ['paramount']);
+    const c = await get('/api/cobertura?cep=01002000');
+    const p = c.j.planos.find((x) => x.nome === 'TIM 600 c/ Paramount'); assert.deepEqual(p.streaming, [{ id: 'paramount', nome: 'Paramount+' }]);
+  });
+  await t('Monitor: lê a página da operadora, extrai ofertas e detecta mudança', async () => {
+    const monitor = require('../lib/monitor');
+    const url = `http://127.0.0.1:${mcc.address().port}/oferta-tim`;
+    let r = await monitor.verificarOperadora({ id: 'tim', siteOfertas: url });
+    assert.equal(r.ok, true);
+    assert.deepEqual(r.ofertas.map((o) => o.velocidadeMbps), [500, 600, 1000]);
+    assert.deepEqual(r.ofertas[0].precos, [129.99, 89.99]);
+    assert.deepEqual(r.ofertas[1].streaming, ['paramount+']);
+    assert.ok(!r.ofertas.some((o) => o.velocidadeMbps === 999), 'ignora texto dentro de <script>');
+    const h1 = r.hash;
+    await send('/admin/api/monitor/tim/revisado', 'POST', {}, H);
+    r = await monitor.verificarOperadora({ id: 'tim', siteOfertas: url }); assert.equal(r.hash, h1); assert.equal(r.revisadoHash, h1);
+    global.precoGiga = '179,99';
+    r = await monitor.verificarOperadora({ id: 'tim', siteOfertas: url }); assert.notEqual(r.hash, h1); assert.notEqual(r.revisadoHash, r.hash);
+    const viaPainel = await get('/admin/api/monitor', H); assert.equal(viaPainel.j.tim.ofertas[2].precos[0], 179.99);
   });
 
   console.log(`\n${ok} testes passaram.`);

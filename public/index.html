@@ -10,7 +10,7 @@
 <link rel="preload" as="image" href="/images/garoto-hero.webp" type="image/webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/estilo.css">
 </head>
 <body>
@@ -19,59 +19,94 @@
 <header class="topo">
   <div class="wrap topo-in">
     <a href="/" class="marca" aria-label="Conecta Aqui — início">
-      <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" width="200" height="40">
+      <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" width="170" height="34">
     </a>
     <nav class="menu" id="menu" aria-label="Principal">
-      <a href="#buscar" data-tipo="internet">Internet</a>
+      <a href="#buscar" data-tipo="internet">Internet residencial</a>
       <a href="#buscar" data-tipo="combo-tv">Internet + TV</a>
       <a href="#buscar" data-tipo="combo-movel">Internet + Celular</a>
-      <a href="#buscar" data-tipo="combo-completo">Combos</a>
-      <a href="#operadoras">Operadoras</a>
+      <a href="#ofertas">Ofertas</a>
+      <a href="#duvidas">Dúvidas</a>
     </nav>
-    <a class="btn btn-wa-topo" id="waTopo" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
-    <button class="hamb" id="hamb" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <a class="btn btn-topo" id="waTopo" href="#" target="_blank" rel="noopener">Falar com especialista</a>
+    <button class="hamb" id="hamb" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span></button>
   </div>
 </header>
 
 <main>
-  <!-- 2. HERO: headline + busca por CEP + recomendação em destaque -->
+  <!-- 2. HERO -->
   <section class="hero" id="buscar">
     <div class="wrap hero-in">
       <div class="hero-txt">
-        <span class="selo"><i></i> Internet residencial, TV e celular</span>
-        <h1>Encontre o <em>melhor plano</em> de internet em sua cidade</h1>
-        <p class="hero-sub">Digite o seu CEP abaixo, compare e escolha a internet ideal para a sua casa</p>
+        <div class="slide-txt" id="slideTxt" aria-live="polite">
+          <p class="eyebrow" id="heroSelo">Internet residencial, TV e celular</p>
+          <h1 id="heroTitulo">Encontre o <em>melhor plano</em> de internet em sua cidade</h1>
+          <p class="hero-sub" id="heroSub">Digite o seu CEP abaixo, compare e escolha a internet ideal para a sua casa</p>
+        </div>
 
-        <form class="busca" id="formBusca" autocomplete="postal-code" novalidate>
+        <form class="busca" id="formBusca" novalidate>
           <div class="abas" role="tablist" aria-label="Tipo de serviço">
             <button type="button" role="tab" class="aba ativa" data-tipo="todos" aria-selected="true">Todos</button>
-            <button type="button" role="tab" class="aba" data-tipo="internet" aria-selected="false">Internet</button>
+            <button type="button" role="tab" class="aba" data-tipo="internet" aria-selected="false">Internet residencial</button>
             <button type="button" role="tab" class="aba" data-tipo="combo-tv" aria-selected="false">Internet + TV</button>
             <button type="button" role="tab" class="aba" data-tipo="combo-movel" aria-selected="false">Internet + Celular</button>
           </div>
-          <label for="cep" class="rotulo">Qual é o seu CEP?</label>
-          <div class="campo-cep">
-            <input id="cep" name="cep" inputmode="numeric" placeholder="00000-000" maxlength="9" required aria-describedby="cepAjuda">
-            <button class="btn btn-prim" type="submit" id="btnBuscar">Ver planos</button>
+
+          <!-- passo 1: CEP -->
+          <div class="passo" id="passoCep">
+            <div class="pilula">
+              <div class="flutua">
+                <input id="cep" name="cep" inputmode="numeric" autocomplete="postal-code" placeholder=" " maxlength="9" required>
+                <label for="cep">Digite seu CEP</label>
+              </div>
+              <button class="btn btn-prim" type="submit" id="btnCep"><span>Verificar endereço</span><i class="giro" aria-hidden="true"></i></button>
+            </div>
           </div>
-          <div class="busca-rodape" id="cepAjuda">
-            <ul class="garantias"><li>Grátis</li><li>Sem cadastro</li><li>Resultado na hora</li></ul>
-            <a href="https://buscacepinter.correios.com.br/" target="_blank" rel="noopener">Não sei meu CEP</a>
+
+          <!-- passo 2: número -->
+          <div class="passo oculto" id="passoNum">
+            <div class="achado">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+              <div><b id="endRua"></b><span id="endLocal"></span></div>
+              <button type="button" id="trocarCep">Alterar</button>
+            </div>
+            <div class="pilula">
+              <div class="flutua oculto" id="ruaWrap">
+                <input id="rua" name="rua" autocomplete="address-line1" placeholder=" " maxlength="120">
+                <label for="rua">Rua</label>
+              </div>
+              <div class="flutua f-num">
+                <input id="numero" name="numero" inputmode="numeric" autocomplete="address-line2" placeholder=" " maxlength="10">
+                <label for="numero">Número</label>
+              </div>
+              <button class="btn btn-prim" type="submit" id="btnBuscar"><span>Ver planos</span><i class="giro" aria-hidden="true"></i></button>
+            </div>
+          </div>
+
+          <div class="busca-info">
+            <p class="local" id="local" aria-live="polite"></p>
+            <a href="https://buscacepinter.correios.com.br/" target="_blank" rel="noopener" id="naoSei">Não sei meu CEP</a>
           </div>
         </form>
+
+        <ul class="garantias">
+          <li>Comparação gratuita</li>
+          <li>Sem cadastro</li>
+          <li>Só planos que atendem seu endereço</li>
+        </ul>
       </div>
 
       <div class="hero-foto">
-        <picture>
-          <source srcset="/images/garoto-hero.webp" type="image/webp">
-          <img src="/images/garoto-hero.jpg" alt="Especialista da Conecta Aqui" width="820" height="1041" fetchpriority="high">
-        </picture>
-        <!-- recomendação rotativa (preenchida com os planos em destaque do painel) -->
-        <aside class="recomenda oculto" id="recomenda" aria-label="Recomendação Conecta Aqui">
-          <span class="recomenda-tit">Recomendação Conecta Aqui</span>
-          <div id="recomendaCorpo"></div>
-          <div class="recomenda-pontos" id="recomendaPontos"></div>
-        </aside>
+        <img id="heroImg" src="/images/garoto-hero.webp" alt="Especialista da Conecta Aqui" width="820" height="1041" fetchpriority="high">
+        <div class="slide-nav oculto" id="slideNav">
+          <button type="button" class="seta" id="slideAnt" aria-label="Slide anterior"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <div class="pontos-slide" id="slidePontos"></div>
+          <button type="button" class="seta" id="slideProx" aria-label="Próximo slide"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <a class="especialista" id="waHero" href="#" target="_blank" rel="noopener">
+          <img src="/images/garoto-rosto.webp" alt="" width="44" height="44">
+          <span><b>Fale com um especialista</b><small><i></i> Online no WhatsApp</small></span>
+        </a>
       </div>
     </div>
   </section>

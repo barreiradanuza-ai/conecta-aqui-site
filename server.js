@@ -8,6 +8,9 @@ const crypto = require('node:crypto');
 const store = require('./lib/store');
 const csv = require('./lib/csv');
 const cobertura = require('./lib/cobertura');
+const monitor = require('./lib/monitor');
+const UPLOADS_DIR = path.join(store.DATA_DIR, 'uploads');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
@@ -37,6 +40,21 @@ function lerCorpo(req, limite = 2 * 1024 * 1024) {
     req.on('end', () => ok(Buffer.concat(partes).toString('utf8')));
     req.on('error', falha);
   });
+}
+function lerBuffer(req, limite) {
+  return new Promise((ok, falha) => {
+    let tam = 0; const partes = [];
+    req.on('data', (c) => { tam += c.length; if (tam > limite) { falha(Object.assign(new Error('Imagem muito grande (máximo 1,5 MB)'), { status: 413 })); req.destroy(); } else partes.push(c); });
+    req.on('end', () => ok(Buffer.concat(partes)));
+    req.on('error', falha);
+  });
+}
+// reconhece a imagem pelo conteúdo (não confia no nome do arquivo)
+function tipoImagem(b) {
+  if (b.length > 8 && b[0] === 0x89 && b.toString('ascii', 1, 4) === 'PNG') return 'png';
+  if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg';
+  if (b.length > 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return null;
 }
 async function lerJson(req) {
   const t = await lerCorpo(req);
@@ -91,13 +109,14 @@ function planosPublicos(filtro) {
     .map((p) => ({
       id: p.id, nome: p.nome, tipo: p.tipo, velocidadeMbps: p.velocidadeMbps, preco: p.preco, precoPromo: p.precoPromo,
       mesesPromo: p.mesesPromo, beneficios: p.beneficios, destaque: p.destaque,
+      streaming: (p.streaming || []).map((k) => ({ id: k, nome: store.STREAMING[k] })), mesesStreaming: p.mesesStreaming ?? null,
       linkContratacao: p.linkContratacao || ops[p.operadoraId].linkContratacao || '',
       operadora: { id: p.operadoraId, nome: ops[p.operadoraId].nome, cor: ops[p.operadoraId].cor, logoUrl: ops[p.operadoraId].logoUrl },
     }));
 }
 
-const COLUNAS_PLANO = ['id', 'operadoraId', 'nome', 'tipo', 'velocidadeMbps', 'preco', 'precoPromo', 'mesesPromo', 'beneficios', 'destaque', 'ativo', 'apenasCidadePromo', 'linkContratacao', 'ordem'];
-const COLUNAS_LEAD = ['criadoEm', 'nome', 'telefone', 'cep', 'cidade', 'uf', 'planoNome', 'operadora', 'origem'];
+const COLUNAS_PLANO = ['id', 'operadoraId', 'nome', 'tipo', 'velocidadeMbps', 'preco', 'precoPromo', 'mesesPromo', 'beneficios', 'streaming', 'mesesStreaming', 'destaque', 'ativo', 'apenasCidadePromo', 'linkContratacao', 'ordem'];
+const COLUNAS_LEAD = ['criadoEm', 'nome', 'telefone', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'planoNome', 'operadora', 'origem'];
 
 // ---------------- rotas públicas ----------------
 async function rotaPublica(req, res, url) {
@@ -125,12 +144,15 @@ async function rotaPublica(req, res, url) {
     const leads = store.load('leads', []);
     leads.push({
       id: store.newId(), criadoEm: new Date().toISOString(), nome, telefone,
-      cep: cobertura.limparCep(b.cep).slice(0, 8), cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2),
+      cep: cobertura.limparCep(b.cep).slice(0, 8), rua: String(b.rua || '').slice(0, 120), numero: String(b.numero || '').slice(0, 10), bairro: String(b.bairro || '').slice(0, 60), cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2),
       planoNome: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40),
       origem: ['plano', 'sem-cobertura', 'contato'].includes(b.origem) ? b.origem : 'contato',
     });
     store.save('leads', leads.slice(-20000));
     return json(res, 200, { ok: true });
+  }
+  if (req.method === 'GET' && url.pathname === '/api/slides') {
+    return json(res, 200, store.load('slides', []).filter((x) => x.ativo));
   }
   if (req.method === 'GET' && url.pathname === '/api/config') {
     return json(res, 200, { whatsapp: (process.env.WHATSAPP_NUMBER || '').replace(/\D/g, ''), telefone: process.env.TELEFONE || '', email: process.env.EMAIL_CONTATO || '' });
@@ -221,6 +243,33 @@ async function rotaAdmin(req, res, url) {
     store.save('operadoras', lista); cobertura.limparCache();
     return json(res, 200, lista);
   }
+  // --- slides ---
+  if (p === '/slides' && req.method === 'GET') return json(res, 200, store.load('slides', []));
+  if (p === '/slides' && req.method === 'PUT') {
+    const lista = (await lerJson(req));
+    if (!Array.isArray(lista) || lista.length > 8) return json(res, 400, { erro: 'Envie de 1 a 8 slides.' });
+    const slides = lista.map(store.normalizarSlide);
+    if (slides.some((x) => !x.titulo)) return json(res, 400, { erro: 'Todo slide precisa de título.' });
+    if (!slides.some((x) => x.ativo)) return json(res, 400, { erro: 'Deixe pelo menos um slide ativo.' });
+    store.save('slides', slides);
+    return json(res, 200, slides);
+  }
+  // --- imagens (logos das operadoras e fotos dos slides) ---
+  if (p === '/imagem' && req.method === 'POST') {
+    const nome = String(url.searchParams.get('nome') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40);
+    if (!nome) return json(res, 400, { erro: 'Nome da imagem inválido.' });
+    const buf = await lerBuffer(req, 1.5 * 1024 * 1024);
+    const ext = tipoImagem(buf);
+    if (!ext) return json(res, 400, { erro: 'Use uma imagem PNG, JPG ou WEBP.' });
+    for (const e of ['png', 'jpg', 'webp']) { try { fs.unlinkSync(path.join(UPLOADS_DIR, `${nome}.${e}`)); } catch {} }
+    fs.writeFileSync(path.join(UPLOADS_DIR, `${nome}.${ext}`), buf);
+    return json(res, 200, { url: `/uploads/${nome}.${ext}?v=${Date.now()}` });
+  }
+  // --- monitor de ofertas ---
+  if (p === '/monitor' && req.method === 'GET') return json(res, 200, store.load('monitor', {}));
+  if (p === '/monitor/verificar' && req.method === 'POST') return json(res, 200, await monitor.verificarTodas());
+  m = p.match(/^\/monitor\/([a-z0-9-]+)\/revisado$/);
+  if (m && req.method === 'POST') return json(res, 200, monitor.marcarRevisado(m[1]) || {});
   // --- contatos ---
   if (p === '/contatos' && req.method === 'GET') return json(res, 200, store.load('leads', []).slice(-500).reverse());
   if (p === '/contatos/exportar' && req.method === 'GET') {
@@ -239,6 +288,12 @@ async function rotaAdmin(req, res, url) {
 const TIPOS_ARQ = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp' };
 function estatico(req, res, url) {
   let rel = decodeURIComponent(url.pathname);
+  if (rel.startsWith('/uploads/')) {
+    const nomeArq = path.basename(rel);
+    if (!/^[a-z0-9-]+\.(png|jpg|webp)$/.test(nomeArq)) return json(res, 404, { erro: 'Não encontrado' });
+    return fs.readFile(path.join(UPLOADS_DIR, nomeArq), (err, dados) => (err ? json(res, 404, { erro: 'Não encontrado' })
+      : enviar(res, 200, dados, TIPOS_ARQ[path.extname(nomeArq)], { 'cache-control': 'public, max-age=604800' })));
+  }
   if (rel === '/') rel = '/index.html';
   if (rel === '/admin' || rel === '/admin/') rel = '/admin.html';
   const alvo = path.normalize(path.join(PUBLIC_DIR, rel));
@@ -271,6 +326,7 @@ const servidor = http.createServer(async (req, res) => {
 
 if (require.main === module) {
   servidor.listen(PORT, () => {
+    if (process.env.MONITOR_OFERTAS !== 'off') monitor.iniciar();
     console.log(`Conecta Aqui rodando na porta ${PORT}`);
     if (cobertura.MODO_DEMO) console.warn('ATENÇÃO: MCC_EMAIL/MCC_PASSWORD não definidos. Cobertura em MODO DEMONSTRAÇÃO (dados fictícios).');
     if (!ADMIN_PASSWORD) console.warn('ATENÇÃO: ADMIN_PASSWORD não definida. O painel ficará bloqueado.');
