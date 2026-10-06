@@ -81,7 +81,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
 
 <section id="telaPainel" class="oculto">
   <header class="topo">
-    <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" height="30" style="height:30px;width:auto"><b style="color:#9fb6d6;font-weight:600">Painel</b>
+    <span style="background:#fff;border-radius:10px;padding:3px;display:inline-flex"><img src="/images/logo-oficial-240.png" alt="Conecta Aqui" style="height:40px;width:auto"></span><b style="color:#9fb6d6;font-weight:600">Painel</b>
     <nav class="abas" id="abas">
       <button data-aba="planos" class="ativa">Planos</button>
       <button data-aba="ofertas">Ofertas das operadoras <span id="badgeMon" class="pill oculto" style="background:#ffe7c2;color:#8a5300">!</span></button>
@@ -473,8 +473,8 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   // ---------- contatos ----------
   async function carregarContatos() {
     const lista = await api('/contatos');
-    const ORIG = { plano: 'Escolheu plano', 'sem-cobertura': 'Sem cobertura', contato: 'Contato' };
-    $('#tabContatos').innerHTML = lista.map((c) => `<tr><td>${new Date(c.criadoEm).toLocaleString('pt-BR')}</td><td>${esc(c.nome)}</td><td><a href="https://wa.me/55${esc(c.telefone.replace(/^55/, ''))}" target="_blank" rel="noopener">${esc(c.telefone)}</a></td><td>${esc([c.rua, c.numero].filter(Boolean).join(', '))}${c.bairro ? ' · ' + esc(c.bairro) : ''}<br><small class="dica">CEP ${esc(c.cep)}</small></td><td>${esc(c.cidade)}${c.uf ? '/' + esc(c.uf) : ''}</td><td>${esc(c.planoNome)}${c.operadora ? ' · ' + esc(c.operadora) : ''}</td><td>${esc(ORIG[c.origem] || c.origem)}</td></tr>`).join('') || '<tr><td colspan="7" class="dica">Nenhum contato ainda.</td></tr>';
+    const ORIG = { plano: 'Escolheu plano', whatsapp: 'Clicou no WhatsApp', 'sem-cobertura': 'Sem cobertura', contato: 'Contato' };
+    $('#tabContatos').innerHTML = lista.map((c) => `<tr><td>${new Date(c.criadoEm).toLocaleString('pt-BR')}</td><td>${esc(c.nome) || '<span class="dica">—</span>'}</td><td>${c.telefone ? `<a href="https://wa.me/55${esc(c.telefone.replace(/^55/, ''))}" target="_blank" rel="noopener">${esc(c.telefone)}</a>` : '<span class="dica">pelo WhatsApp</span>'}</td><td>${esc([c.rua, c.numero].filter(Boolean).join(', '))}${c.bairro ? ' · ' + esc(c.bairro) : ''}<br><small class="dica">CEP ${esc(c.cep)}</small></td><td>${esc(c.cidade)}${c.uf ? '/' + esc(c.uf) : ''}</td><td>${esc(c.planoNome)}${c.operadora ? ' · ' + esc(c.operadora) : ''}</td><td>${esc(ORIG[c.origem] || c.origem)}</td></tr>`).join('') || '<tr><td colspan="7" class="dica">Nenhum contato ainda.</td></tr>';
   }
 
   // ---------- testar ----------

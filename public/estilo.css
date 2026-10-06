@@ -11,7 +11,7 @@
   --sec:112px;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:80px}
+html{scroll-behavior:smooth;scroll-padding-top:88px}
 body{margin:0;font:400 16px/1.6 var(--f-txt);color:var(--texto);background:var(--branco);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 img{max-width:100%;display:block;height:auto}
 a{color:inherit}
@@ -46,16 +46,16 @@ p{margin:0}
 .sobre,.eyebrow{display:block;font:600 .8rem var(--f-tit);letter-spacing:.08em;text-transform:uppercase;color:var(--azul);margin-bottom:12px}
 
 /* ---------- topo ---------- */
-.topo{position:sticky;top:0;z-index:20;background:var(--marinho);border-bottom:1px solid rgba(255,255,255,.06)}
-.topo-in{display:flex;align-items:center;gap:32px;height:72px}
-.marca img{height:34px;width:auto}
+.topo{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--linha)}
+.topo-in{display:flex;align-items:center;gap:32px;height:80px}
+.marca img{height:62px;width:auto}
 .menu{display:flex;gap:28px;margin-left:auto}
-.menu a{color:rgba(255,255,255,.78);text-decoration:none;font:500 .9rem var(--f-txt);transition:color .15s}
-.menu a:hover{color:#fff}
-.btn-topo{background:#fff;color:var(--marinho);padding:.7em 1.15em;font-size:.86rem}
-.btn-topo:hover{background:var(--ciano)}
+.menu a{color:var(--tinta);text-decoration:none;font:500 .92rem var(--f-txt);transition:color .15s}
+.menu a:hover{color:var(--azul)}
+.btn-topo{background:#25d366;color:#fff;padding:.75em 1.2em;font-size:.88rem}
+.btn-topo:hover{background:#1ebe5a}
 .hamb{display:none;margin-left:auto;background:transparent;border:0;width:44px;height:44px;padding:13px 10px;cursor:pointer}
-.hamb span{display:block;height:2px;background:#fff;margin:5px 0;border-radius:2px}
+.hamb span{display:block;height:2px;background:var(--tinta);margin:5px 0;border-radius:2px}
 
 /* ---------- hero ---------- */
 .hero{background:linear-gradient(180deg,var(--marinho) 0%,var(--marinho-2) 100%);color:#fff;overflow:hidden}
@@ -261,7 +261,8 @@ details p{padding:0 0 22px;color:var(--muted);max-width:62ch}
 .rodape a{display:block;text-decoration:none;margin:8px 0;color:rgba(255,255,255,.65);transition:color .15s}
 .rodape a:hover{color:#fff}
 .rodape .muted{color:rgba(255,255,255,.55);max-width:34ch;margin-top:16px}
-.rodape img{height:32px;width:auto}
+.rodape-logo{display:inline-flex;background:#fff;border-radius:16px;padding:6px}
+.rodape-logo img{height:72px;width:auto}
 .legal{border-top:1px solid rgba(255,255,255,.08);margin-top:56px;padding-top:24px;font-size:.8rem;color:rgba(255,255,255,.45)}
 
 /* ---------- WhatsApp flutuante ---------- */
@@ -293,8 +294,8 @@ details p{padding:0 0 22px;color:var(--muted);max-width:62ch}
   :root{--sec:80px}
   .menu,.btn-topo{display:none}
   .hamb{display:block}
-  .menu.aberto{display:flex;flex-direction:column;position:absolute;top:72px;left:0;right:0;background:var(--marinho);padding:8px 24px 24px;gap:0;border-bottom:1px solid rgba(255,255,255,.08)}
-  .menu.aberto a{padding:14px 0;border-top:1px solid rgba(255,255,255,.08);font-size:1rem}
+  .menu.aberto{display:flex;flex-direction:column;position:absolute;top:80px;left:0;right:0;background:#fff;padding:8px 24px 24px;gap:0;border-bottom:1px solid var(--linha);box-shadow:var(--sombra)}
+  .menu.aberto a{padding:14px 0;border-top:1px solid var(--linha);font-size:1rem}
   .hero-in{grid-template-columns:minmax(0,1fr);gap:48px;padding:56px 0 64px}
   .hero-foto{max-width:420px}
   .especialista{left:16px;bottom:16px}
@@ -309,9 +310,9 @@ details p{padding:0 0 22px;color:var(--muted);max-width:62ch}
   :root{--sec:64px}
   body{font-size:15px}
   .wrap,.estreito{width:calc(100% - 32px)}
-  .topo-in{height:64px}
-  .marca img{height:30px}
-  .menu.aberto{top:64px}
+  .topo-in{height:68px}
+  .marca img{height:52px}
+  .menu.aberto{top:68px}
   .hero-in{padding:40px 0 48px;gap:40px}
   .hero h1{font-size:2rem}
   .hero-sub{font-size:1rem;margin-top:14px}
@@ -337,3 +338,27 @@ details p{padding:0 0 22px;color:var(--muted);max-width:62ch}
   .filtros{flex-direction:column}
 }
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* ---------- botão WhatsApp nos planos ---------- */
+.btn-wa{background:#25d366;color:#fff}
+.btn-wa:hover{background:#1ebe5a}
+.btn-wa svg{width:20px;height:20px;flex:none}
+
+/* ---------- tela "buscando" ---------- */
+.buscando{position:fixed;inset:0;z-index:60;background:#f3f5f8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:24px;text-align:center;animation:aparece .2s ease}
+@keyframes aparece{from{opacity:0}}
+.buscando-tit{font:600 clamp(1.05rem,2.2vw,1.35rem) var(--f-tit);color:var(--tinta);max-width:32ch}
+.buscando-etapa{font-size:.92rem;color:var(--muted);min-height:1.4em}
+.radar{position:relative;width:min(360px,78vw);aspect-ratio:1;display:grid;place-items:center}
+.radar::before{content:"";position:absolute;inset:0;border-radius:50%;background:#fafbfc}
+.onda{position:absolute;inset:14%;border-radius:50%;border:2px solid rgba(0,64,166,.10);animation:onda 2.2s ease-out infinite}
+.onda.o2{animation-delay:1.1s}
+@keyframes onda{from{transform:scale(.85);opacity:1}to{transform:scale(1.25);opacity:0}}
+.radar-in{position:relative;width:70%;aspect-ratio:1;border-radius:50%;background:#fff;box-shadow:0 2px 10px rgba(11,26,51,.05);display:grid;place-items:center}
+.radar-in img{max-width:56%;max-height:34%;object-fit:contain;transition:opacity .25s ease}
+.radar-in img.troca{opacity:0}
+.orbita{position:absolute;inset:0;animation:gira-orbita 2.4s linear infinite}
+.lupa{position:absolute;left:12%;top:58%;width:22%;fill:none;stroke:var(--ciano);stroke-width:5;stroke-linecap:round;animation:contra 2.4s linear infinite}
+@keyframes gira-orbita{to{transform:rotate(360deg)}}
+@keyframes contra{to{transform:rotate(-360deg)}}
+body.travado{overflow:hidden}

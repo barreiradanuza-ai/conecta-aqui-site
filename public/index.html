@@ -7,6 +7,7 @@
 <meta name="description" content="Digite o seu CEP, compare e escolha a internet ideal para a sua casa. Internet residencial e combos com TV e celular das principais operadoras.">
 <meta name="theme-color" content="#071b45">
 <link rel="icon" href="/images/favicon.png">
+<link rel="apple-touch-icon" href="/images/icone-oficial.png">
 <link rel="preload" as="image" href="/images/garoto-hero.webp" type="image/webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +20,7 @@
 <header class="topo">
   <div class="wrap topo-in">
     <a href="/" class="marca" aria-label="Conecta Aqui — início">
-      <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" width="170" height="34">
+      <img src="/images/logo-oficial-240.png" alt="Conecta Aqui" width="62" height="62">
     </a>
     <nav class="menu" id="menu" aria-label="Principal">
       <a href="#buscar" data-tipo="internet">Internet residencial</a>
@@ -297,7 +298,7 @@
 <footer class="rodape">
   <div class="wrap rodape-in">
     <div>
-      <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" width="180" height="36">
+      <span class="rodape-logo"><img src="/images/logo-oficial-240.png" alt="Conecta Aqui" width="72" height="72"></span>
       <p class="muted">Comparamos internet residencial e combos com TV e celular para o seu endereço e ajudamos você a escolher com mais clareza.</p>
     </div>
     <div>
@@ -335,6 +336,17 @@
     <small class="muted">Usamos seus dados só para falar sobre sua contratação.</small>
   </form>
 </dialog>
+
+<!-- TELA DE BUSCA (mínimo 3 segundos) -->
+<div class="buscando oculto" id="buscando" role="status" aria-live="polite">
+  <p class="buscando-tit">Estamos procurando a internet mais rápida e barata para você…</p>
+  <div class="radar">
+    <span class="onda"></span><span class="onda o2"></span>
+    <div class="radar-in"><img id="buscandoLogo" src="/images/icone-oficial.png" alt=""></div>
+    <div class="orbita"><svg class="lupa" viewBox="0 0 48 48" aria-hidden="true"><circle cx="28" cy="20" r="12"/><path d="M19 29 8 40"/></svg></div>
+  </div>
+  <p class="buscando-etapa" id="buscandoEtapa">Consultando a cobertura no seu endereço</p>
+</div>
 
 <script src="/app.js"></script>
 </body>

@@ -154,8 +154,22 @@ async function rotaPublica(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/slides') {
     return json(res, 200, store.load('slides', []).filter((x) => x.ativo));
   }
+  if (req.method === 'POST' && url.pathname === '/api/clique') {
+    // registra quem clicou em "Quero este plano" (vai direto para o WhatsApp)
+    if (!limitar(req, 'clique', 20, 10 * 60_000)) return json(res, 200, { ok: true });
+    const b = await lerJson(req);
+    const leads = store.load('leads', []);
+    leads.push({
+      id: store.newId(), criadoEm: new Date().toISOString(), nome: '', telefone: '',
+      cep: cobertura.limparCep(b.cep).slice(0, 8), rua: String(b.rua || '').slice(0, 120), numero: String(b.numero || '').slice(0, 10), bairro: String(b.bairro || '').slice(0, 60),
+      cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2),
+      planoNome: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40), origem: 'whatsapp',
+    });
+    store.save('leads', leads.slice(-20000));
+    return json(res, 200, { ok: true });
+  }
   if (req.method === 'GET' && url.pathname === '/api/config') {
-    return json(res, 200, { whatsapp: (process.env.WHATSAPP_NUMBER || '').replace(/\D/g, ''), telefone: process.env.TELEFONE || '', email: process.env.EMAIL_CONTATO || '' });
+    return json(res, 200, { whatsapp: (process.env.WHATSAPP_NUMBER || '').replace(/\D/g, ''), whatsappPlanos: (process.env.WHATSAPP_PLANOS || '5511955035657').replace(/\D/g, ''), telefone: process.env.TELEFONE || '', email: process.env.EMAIL_CONTATO || '' });
   }
   return false;
 }

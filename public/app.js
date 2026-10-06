@@ -5,6 +5,7 @@
   const brl = (n) => Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const vel = (mb) => (mb >= 1000 ? { n: (mb / 1000).toLocaleString('pt-BR'), u: mb >= 2000 ? 'Gigas' : 'Giga' } : { n: mb, u: 'Mega' });
 
+  const ICONE_WA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>';
   const TIPO_NOME = { internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
   // cada aba mostra também o combo completo quando faz sentido
   const TIPO_ABA = { todos: null, internet: ['internet'], 'combo-tv': ['combo-tv', 'combo-completo'], 'combo-movel': ['combo-movel', 'combo-completo'], 'combo-completo': ['combo-completo'] };
@@ -117,7 +118,23 @@
   });
   const enderecoDigitado = () => ({ rua: inputRua.value.trim(), numero: inputNum.value.trim() });
 
+  // tela "buscando": mostra as logos das operadoras girando por pelo menos 3 segundos
+  let logosBusca = ['/images/icone-oficial.png'];
+  const ETAPAS = ['Consultando a cobertura no seu endereço', 'Comparando preços e velocidades', 'Separando as melhores ofertas para você'];
+  function abrirBuscando() {
+    const tela = $('#buscando'); const img = $('#buscandoLogo');
+    tela.classList.remove('oculto'); document.body.classList.add('travado');
+    let i = 0;
+    img.src = logosBusca[0]; $('#buscandoEtapa').textContent = ETAPAS[0];
+    const t1 = setInterval(() => { img.classList.add('troca'); setTimeout(() => { i = (i + 1) % logosBusca.length; img.src = logosBusca[i]; img.classList.remove('troca'); }, 250); }, 750);
+    let e = 0; const t2 = setInterval(() => { e = Math.min(e + 1, ETAPAS.length - 1); $('#buscandoEtapa').textContent = ETAPAS[e]; }, 1100);
+    return () => { clearInterval(t1); clearInterval(t2); tela.classList.add('oculto'); document.body.classList.remove('travado'); };
+  }
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+
   async function buscar(cep) {
+    const fechar = abrirBuscando();
+    const minimo = espera(3000);
     const btn = $('#btnBuscar');
     carregando(btn, true);
     $('#resultados').classList.remove('oculto');
@@ -126,9 +143,8 @@
     $('#gradePlanos').innerHTML = '<div class="esqueleto"></div><div class="esqueleto"></div><div class="esqueleto"></div>';
     $('#resTitulo').textContent = 'Buscando planos…';
     $('#resEndereco').textContent = '';
-    $('#resultados').scrollIntoView({ behavior: 'smooth', block: 'start' });
     try {
-      const r = await fetch('/api/cobertura?cep=' + cep);
+      const [r] = await Promise.all([fetch('/api/cobertura?cep=' + cep), minimo]);
       const j = await r.json();
       if (!r.ok) throw new Error(j.erro || 'Erro na busca');
       estado.resultado = j;
@@ -139,6 +155,8 @@
       $('#resTitulo').textContent = 'Não foi possível buscar agora';
       $('#gradePlanos').innerHTML = `<p class="vazio">${esc(e.message)}</p>`;
     } finally {
+      await minimo; fechar();
+      $('#resultados').scrollIntoView({ behavior: 'auto', block: 'start' });
       carregando(btn, false);
     }
   }
@@ -218,14 +236,25 @@
         <div class="valor">${brl(temPromo ? p.precoPromo : p.preco)}<small>/mês</small></div>
         ${temPromo && p.mesesPromo ? `<div class="cond">nos ${p.mesesPromo} primeiros meses, depois ${brl(p.preco)}/mês</div>` : ''}
       </div>
-      <button class="btn btn-prim largo" data-plano="${esc(p.id)}">Quero este plano</button>
+      <button class="btn btn-wa largo" data-plano="${esc(p.id)}">${ICONE_WA}Quero este plano</button>
     </article>`;
   }
 
+  function enderecoTexto() {
+    const r = estado.resultado || {}; const d = enderecoDigitado();
+    return [[d.rua || r.endereco?.logradouro, d.numero].filter(Boolean).join(', '), r.endereco?.bairro, r.endereco?.cidade && `${r.endereco.cidade}/${r.endereco.uf}`, r.cep && `CEP ${r.cep.slice(0, 5)}-${r.cep.slice(5)}`].filter(Boolean).join(' - ');
+  }
   function ligarBotoesPlano(container, planos) {
     $$('[data-plano]', container).forEach((b) => b.addEventListener('click', () => {
-      estado.planoEscolhido = planos.find((p) => p.id === b.dataset.plano);
-      abrirContato('plano');
+      const p = planos.find((x) => x.id === b.dataset.plano);
+      const preco = brl(p.precoPromo ?? p.preco);
+      const msg = `Olá! Quero contratar o plano ${p.nome} (${p.operadora.nome}) de ${preco}/mês.\nEndereço: ${enderecoTexto()}`;
+      const numero = estado.config.whatsappPlanos || '5511955035657';
+      window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+      const r = estado.resultado || {}; const d = enderecoDigitado();
+      try {
+        navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ planoNome: p.nome, operadora: p.operadora.nome, cep: r.cep, rua: d.rua || r.endereco?.logradouro, numero: d.numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf })], { type: 'application/json' }));
+      } catch {}
     }));
   }
 
@@ -236,10 +265,12 @@
     setTimeout(() => inputCep.focus({ preventScroll: true }), 450);
   }
   fetch('/api/destaques').then((r) => r.json()).then((j) => {
-    $('#gradeDestaques').innerHTML = j.planos.length ? j.planos.map(cartao).join('').replaceAll('Quero este plano', 'Ver se atende meu CEP') : '<p class="vazio">Em breve, novas ofertas.</p>';
+    $('#gradeDestaques').innerHTML = j.planos.length ? j.planos.map(cartao).join('').replaceAll(`btn btn-wa largo`, 'btn btn-prim largo').replaceAll(`${ICONE_WA}Quero este plano`, 'Ver se atende meu CEP') : '<p class="vazio">Em breve, novas ofertas.</p>';
     $$('#gradeDestaques [data-plano]').forEach((b) => b.addEventListener('click', () => irParaBusca()));
 
     const qtd = {}; j.planos.forEach((p) => { qtd[p.operadora.id] = (qtd[p.operadora.id] || 0) + 1; });
+    logosBusca = j.operadoras.filter((o) => o.logoUrl).map((o) => o.logoUrl).concat(logosBusca);
+    logosBusca.forEach((u) => { const im = new Image(); im.src = u; });
     $('#faixaOps').innerHTML = j.operadoras.map((o) => `<div class="op-card">
         <div class="op-nome">${marca(o)}</div>
         <p>Ofertas de internet e combos selecionadas pela Conecta Aqui.</p>
