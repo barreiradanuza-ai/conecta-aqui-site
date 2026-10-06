@@ -167,7 +167,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       </div>
       <div class="card">
         <h2>Faixas de CEP com cobertura</h2>
-        <p class="dica">Resume as listas de CEP do MCC em faixas de 5 dígitos (ex.: 22790) para segmentar anúncios no Google Ads. Leva alguns minutos.</p>
+        <p class="dica">Resume as listas de CEP do MCC em faixas de 5 dígitos (ex.: 22790) para segmentar anúncios no Google Ads. Também descobre a cidade de cada faixa. A primeira vez pode levar cerca de 1 hora; pode fechar o painel enquanto roda.</p>
         <div class="barra"><button class="btn prim" id="btnFaixas" type="button">Gerar faixas</button> <a class="btn" id="btnFaixasCsv" href="/admin/api/faixas/exportar">Baixar CSV</a></div>
         <pre id="resFaixas" class="oculto"></pre>
       </div>
@@ -504,7 +504,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       pre.classList.remove('oculto');
       const prog = Object.entries(f.status.progresso || {}).map(([op, p]) => `${op}: ${p.lidos}${p.total ? ' de ' + p.total : ''}`).join(' · ');
       pre.textContent = f.status.rodando ? 'Gerando… ' + prog
-        : (f.status.erro ? 'Erro: ' + f.status.erro + '\n' : '') + (f.geradoEm ? `Gerado em ${new Date(f.geradoEm).toLocaleString('pt-BR')} · ${f.quantidade} faixas\n\nMaiores faixas (prefixo: CEPs):\n` + f.topo.map((l) => `${l.prefixo}  ${l.total}  (${f.operadoras.map((o) => o + ' ' + (l[o] || 0)).join(', ')})`).join('\n') : 'Ainda não gerado.');
+        : (f.status.erro ? 'Erro: ' + f.status.erro + '\n' : '') + (f.geradoEm ? `Gerado em ${new Date(f.geradoEm).toLocaleString('pt-BR')} · ${f.quantidade} faixas\n\nMaiores faixas (prefixo: CEPs):\n` + f.topo.map((l) => `${l.prefixo}  ${l.cidade ? l.cidade + '/' + l.uf + '  ' : ''}${l.total}  (${f.operadoras.map((o) => o + ' ' + (l[o] || 0)).join(', ')})`).join('\n') : 'Ainda não gerado.');
       if (f.status.rodando) setTimeout(verFaixas, 3000);
     } catch (err) { pre.classList.remove('oculto'); pre.textContent = 'Erro: ' + err.message; }
   }

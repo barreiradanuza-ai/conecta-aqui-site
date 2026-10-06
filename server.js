@@ -313,7 +313,7 @@ async function rotaAdmin(req, res, url) {
   if (p === '/faixas/exportar' && req.method === 'GET') {
     const r = faixas.resultado();
     if (!r) return json(res, 404, { erro: 'Gere as faixas primeiro' });
-    const cols = ['prefixo', 'total', ...r.operadoras];
+    const cols = ['prefixo', 'uf', 'cidade', 'total', ...r.operadoras];
     return enviar(res, 200, csv.stringify(r.linhas, cols), 'text/csv; charset=utf-8', { 'content-disposition': 'attachment; filename="faixas-cep-cobertura.csv"' });
   }
   // --- testar cobertura ---

@@ -43,6 +43,8 @@ const mcc = http.createServer((req, res) => {
     const items = (LISTAS[m[1]] || []).filter((v) => v.includes(q)).map((v) => ({ id: v, value: v }));
     return res.end(JSON.stringify({ items, total: items.length, page: 1, pageSize: 100 }));
   }
+  const vc = u.pathname.match(/^\/ws\/(\d{8})\/json\/$/);
+  if (vc) return res.end(JSON.stringify({ cep: vc[1], uf: vc[1] < '20000000' ? 'SP' : 'RJ', localidade: vc[1] < '20000000' ? 'São Paulo' : 'Rio de Janeiro' }));
   res.statusCode = 404; res.end('{}');
 });
 
@@ -50,6 +52,7 @@ const mcc = http.createServer((req, res) => {
   await new Promise((r) => mcc.listen(0, r));
   process.env.MCC_BASE_URL = `http://127.0.0.1:${mcc.address().port}`;
   process.env.MCC_EMAIL = 'ponte@x.com';
+  process.env.VIACEP_URL = process.env.MCC_BASE_URL;
   process.env.MCC_PASSWORD = 'segredo';
   process.env.ADMIN_PASSWORD = 'admin123';
   process.env.WHATSAPP_NUMBER = '5521900000000';
@@ -156,7 +159,7 @@ const mcc = http.createServer((req, res) => {
     assert.ok(!f.status.erro, f.status.erro); assert.ok(f.quantidade > 0);
     assert.ok(f.topo.every((l) => /^\d{5}$/.test(l.prefixo)));
     const r = await fetchOrig(B + '/admin/api/faixas/exportar', { headers: { cookie } });
-    assert.ok((await r.text()).includes('prefixo;total;'));
+    assert.ok((await r.text()).includes('prefixo;uf;cidade;total;'));
   });
   await t('Arquivos estáticos e proteção de caminho', async () => {
     assert.equal((await fetchOrig(B + '/')).status, 200);
