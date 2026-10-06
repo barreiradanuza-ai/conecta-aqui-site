@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Painel · Conecta Aqui</title>
+<link rel="icon" href="/images/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--marinho:#071b45;--turquesa:#00baeb;--turq-esc:#0089b3;--borda:#d5e2ec;--fundo:#f5f8fc;--muted:#5c7190;--texto:#0b1f3a;--erro:#c62828}
+*{box-sizing:border-box}
+body{margin:0;font-family:"DM Sans",system-ui,sans-serif;background:var(--fundo);color:var(--texto)}
+h1,h2,h3{font-family:"Plus Jakarta Sans",sans-serif;margin:0 0 .5em}
+.oculto{display:none!important}
+.btn{font:700 .92rem "Plus Jakarta Sans",sans-serif;border:0;border-radius:10px;padding:.65em 1.1em;cursor:pointer;background:var(--marinho);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.prim{background:var(--turquesa);color:var(--marinho)}
+.btn.claro{background:#fff;color:var(--marinho);border:1.5px solid var(--borda)}
+.btn.perigo{background:#fff;color:var(--erro);border:1.5px solid #f3c4c4}
+.btn:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:500 .95rem "DM Sans",sans-serif;padding:.6em .8em;border:1.5px solid var(--borda);border-radius:10px;width:100%;background:#fff;color:var(--texto)}
+label{display:grid;gap:4px;font-weight:600;font-size:.85rem}
+.topo{background:var(--marinho);color:#fff;padding:0 24px;height:64px;display:flex;align-items:center;gap:24px}
+.topo b{font:800 1.1rem "Plus Jakarta Sans"}
+.topo b span{color:var(--turquesa)}
+.abas{display:flex;gap:4px;margin-left:12px}
+.abas button{background:transparent;border:0;color:#cfe0f2;font:600 .95rem "Plus Jakarta Sans";padding:.6em 1em;border-radius:8px;cursor:pointer}
+.abas button.ativa{background:rgba(255,255,255,.12);color:#fff}
+.topo .sair{margin-left:auto}
+main{padding:24px;max-width:1300px;margin:auto}
+.card{background:#fff;border:1px solid var(--borda);border-radius:16px;padding:20px;margin-bottom:20px}
+.barra{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.barra .busca{max-width:260px}
+.esp{flex:1}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th{text-align:left;font:700 .78rem "Plus Jakarta Sans";text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px 8px;border-bottom:2px solid var(--borda);white-space:nowrap}
+td{padding:10px 8px;border-bottom:1px solid #edf2f7;vertical-align:middle}
+tr.inativo td{opacity:.45}
+.tab-wrap{overflow-x:auto}
+.pill{display:inline-block;padding:.15em .6em;border-radius:999px;font-size:.78rem;font-weight:700;background:#e2fbf8;color:var(--turq-esc)}
+.pill.cinza{background:#eef2f6;color:var(--muted)}
+.bola{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.msg{padding:.8em 1em;border-radius:10px;margin-bottom:16px;font-size:.92rem}
+.msg.ok{background:#e2fbf8;color:#055e66}.msg.erro{background:#fdecec;color:var(--erro)}.msg.aviso{background:#fff6db;color:#7a5a00}
+.login{max-width:380px;margin:12vh auto;background:#fff;border-radius:20px;padding:32px;box-shadow:0 20px 50px rgba(7,27,69,.12);display:grid;gap:14px}
+dialog{border:0;border-radius:18px;padding:0;width:min(720px,100% - 24px);box-shadow:0 30px 80px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(7,27,69,.55)}
+.form{padding:24px;display:grid;gap:14px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.chk{display:flex;gap:8px;align-items:center;font-weight:600}
+.chk input{width:auto}
+.acoes{display:flex;gap:8px;justify-content:flex-end}
+.ops-linha{display:grid;grid-template-columns:1.2fr 70px 1.4fr 1.6fr 1.6fr 80px 40px;gap:8px;align-items:end;margin-bottom:10px}
+.ops-linha input[type=color]{padding:2px;height:40px}
+.dica{font-size:.85rem;color:var(--muted)}
+pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:auto;font-size:.85rem}
+@media (max-width:800px){.ops-linha{grid-template-columns:1fr 1fr}.abas{overflow-x:auto}}
+</style>
+</head>
+<body>
+
+<section id="telaLogin" class="oculto">
+  <form class="login" id="formLogin">
+    <h2>Painel Conecta Aqui</h2>
+    <label>Senha do painel<input type="password" name="senha" autocomplete="current-password" required></label>
+    <p class="msg erro oculto" id="loginErro"></p>
+    <button class="btn prim">Entrar</button>
+  </form>
+</section>
+
+<section id="telaPainel" class="oculto">
+  <header class="topo">
+    <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" height="30" style="height:30px;width:auto"><b style="color:#9fb6d6;font-weight:600">Painel</b>
+    <nav class="abas" id="abas">
+      <button data-aba="planos" class="ativa">Planos</button>
+      <button data-aba="operadoras">Operadoras</button>
+      <button data-aba="contatos">Contatos</button>
+      <button data-aba="testar">Testar CEP</button>
+    </nav>
+    <button class="btn claro sair" id="sair">Sair</button>
+  </header>
+  <main>
+    <div id="avisoDemo" class="msg aviso oculto">Modo demonstração: o usuário da ponte com o Minha Casa Conectada ainda não foi configurado (MCC_EMAIL / MCC_PASSWORD). A cobertura exibida no site é fictícia.</div>
+    <div id="flash" class="msg oculto"></div>
+
+    <!-- PLANOS -->
+    <div data-painel="planos">
+      <div class="card">
+        <div class="barra">
+          <h2 style="margin:0">Planos</h2>
+          <input class="busca" id="filtroPlano" placeholder="Filtrar por nome…">
+          <select id="filtroOp" style="max-width:180px"></select>
+          <span class="esp"></span>
+          <button class="btn claro" id="btnExportar">Exportar planilha</button>
+          <button class="btn claro" id="btnImportar">Importar planilha</button>
+          <button class="btn prim" id="btnNovo">+ Novo plano</button>
+        </div>
+        <div class="tab-wrap"><table>
+          <thead><tr><th>Operadora</th><th>Plano</th><th>Tipo</th><th>Velocidade</th><th>Preço</th><th>Promo</th><th>Status</th><th>Atualizado</th><th></th></tr></thead>
+          <tbody id="tabPlanos"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- OPERADORAS -->
+    <div data-painel="operadoras" class="oculto">
+      <div class="card">
+        <h2>Operadoras</h2>
+        <p class="dica">"Cobertura" diz de onde vem a lista de CEPs: <b>mcc:ceps-claro</b>, <b>mcc:ceps-nio</b> e <b>mcc:ceps-tim</b> vêm do app Minha Casa Conectada. Use <b>todas</b> para quem atende qualquer CEP e <b>nenhuma</b> para esconder dos resultados.</p>
+        <div id="listaOps"></div>
+        <div class="barra" style="margin-top:12px">
+          <button class="btn claro" id="addOp">+ Adicionar operadora</button><span class="esp"></span>
+          <button class="btn prim" id="salvarOps">Salvar operadoras</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTATOS -->
+    <div data-painel="contatos" class="oculto">
+      <div class="card">
+        <div class="barra"><h2 style="margin:0">Contatos recebidos</h2><span class="esp"></span><a class="btn claro" href="/admin/api/contatos/exportar">Exportar planilha</a></div>
+        <div class="tab-wrap"><table>
+          <thead><tr><th>Data</th><th>Nome</th><th>Telefone</th><th>CEP</th><th>Cidade</th><th>Plano</th><th>Origem</th></tr></thead>
+          <tbody id="tabContatos"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TESTAR -->
+    <div data-painel="testar" class="oculto">
+      <div class="card">
+        <h2>Testar cobertura de um CEP</h2>
+        <p class="dica">Consulta direto o app Minha Casa Conectada, sem usar a memória temporária.</p>
+        <form class="barra" id="formTestar"><input name="cep" placeholder="00000-000" style="max-width:200px" required><button class="btn prim">Testar</button></form>
+        <pre id="resTeste" class="oculto"></pre>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- FORM PLANO -->
+<dialog id="dlgPlano">
+  <form class="form" id="formPlano">
+    <h3 id="dlgTitulo">Novo plano</h3>
+    <div class="g2">
+      <label>Operadora<select name="operadoraId" required></select></label>
+      <label>Tipo<select name="tipo"><option value="internet">Internet</option><option value="combo-tv">Internet + TV</option><option value="combo-movel">Internet + Celular</option><option value="combo-completo">Combo completo (Internet + TV + Celular)</option><option value="movel">Só celular</option><option value="tv">Só TV</option></select></label>
+    </div>
+    <label>Nome do plano<input name="nome" required maxlength="100" placeholder="Ex.: Fibra 500 Mega"></label>
+    <div class="g2">
+      <label>Velocidade (Mega)<input name="velocidadeMbps" inputmode="numeric" placeholder="500"></label>
+      <label>Preço (R$/mês)<input name="preco" inputmode="decimal" required placeholder="119,90"></label>
+      <label>Preço promocional<input name="precoPromo" inputmode="decimal" placeholder="opcional"></label>
+      <label>Promoção por (meses)<input name="mesesPromo" inputmode="numeric" placeholder="opcional"></label>
+    </div>
+    <label>Benefícios (um por linha)<textarea name="beneficios" rows="3" placeholder="Wi-Fi incluso&#10;Instalação grátis"></textarea></label>
+    <label>Link de contratação (opcional)<input name="linkContratacao" placeholder="https://…"></label>
+    <div class="g2">
+      <label>Ordem<input name="ordem" inputmode="numeric" placeholder="0"></label>
+      <label class="chk"><input type="checkbox" name="destaque"> Destaque</label>
+      <label class="chk"><input type="checkbox" name="ativo" checked> Ativo no site</label>
+      <label class="chk"><input type="checkbox" name="apenasCidadePromo"> Só em cidades promo Claro</label>
+    </div>
+    <p class="msg erro oculto" id="planoErro"></p>
+    <div class="acoes"><button type="button" class="btn claro" id="cancelarPlano">Cancelar</button><button class="btn prim">Salvar</button></div>
+  </form>
+</dialog>
+
+<!-- IMPORTAR -->
+<dialog id="dlgImportar">
+  <form class="form" id="formImportar">
+    <h3>Importar planilha de planos</h3>
+    <p class="dica">Salve a planilha como <b>CSV</b> (no Excel: Arquivo → Salvar como → CSV). Dica: exporte primeiro, edite e importe de volta. Linhas com <b>id</b> atualizam o plano existente; linhas sem id criam planos novos. Colunas: operadoraId, nome, tipo, velocidadeMbps, preco, precoPromo, mesesPromo, beneficios (separe com |), tipo (internet, combo-tv, combo-movel, combo-completo), destaque, ativo, apenasCidadePromo, linkContratacao, ordem.</p>
+    <input type="file" name="arquivo" accept=".csv,text/csv" required>
+    <label class="chk"><input type="checkbox" name="substituir"> Apagar todos os planos atuais e usar só os da planilha</label>
+    <div id="impErro" class="msg erro oculto"></div>
+    <div class="acoes"><button type="button" class="btn claro" id="cancelarImp">Cancelar</button><button class="btn prim">Importar</button></div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const brl = (n) => (n == null ? '—' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+  const TIPOS = { internet: 'Internet', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
+  let planos = [], operadoras = [], editando = null;
+
+  async function api(caminho, opts = {}) {
+    const r = await fetch('/admin/api' + caminho, { ...opts, headers: { 'x-requested-with': 'painel', ...(opts.body && typeof opts.body === 'string' && !opts.csv ? { 'content-type': 'application/json' } : {}), ...(opts.headers || {}) } });
+    if (r.status === 401 && caminho !== '/login') { mostrarLogin(); throw new Error('Sessão expirada'); }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const e = new Error(j.erro || 'Erro'); e.detalhes = j.detalhes; throw e; }
+    return j;
+  }
+  function flash(texto, tipo = 'ok') {
+    const f = $('#flash'); f.textContent = texto; f.className = 'msg ' + tipo;
+    clearTimeout(flash.t); flash.t = setTimeout(() => f.classList.add('oculto'), 5000);
+  }
+  function mostrarLogin() { $('#telaPainel').classList.add('oculto'); $('#telaLogin').classList.remove('oculto'); }
+
+  $('#formLogin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await api('/login', { method: 'POST', body: JSON.stringify({ senha: e.target.senha.value }) }); e.target.reset(); iniciar(); }
+    catch (err) { const m = $('#loginErro'); m.textContent = err.message; m.classList.remove('oculto'); }
+  });
+  $('#sair').addEventListener('click', async () => { await api('/logout', { method: 'POST' }).catch(() => {}); mostrarLogin(); });
+
+  $$('#abas button').forEach((b) => b.addEventListener('click', () => {
+    $$('#abas button').forEach((x) => x.classList.toggle('ativa', x === b));
+    $$('[data-painel]').forEach((p) => p.classList.toggle('oculto', p.dataset.painel !== b.dataset.aba));
+    if (b.dataset.aba === 'contatos') carregarContatos();
+  }));
+
+  async function iniciar() {
+    try {
+      const st = await api('/status');
+      $('#telaLogin').classList.add('oculto'); $('#telaPainel').classList.remove('oculto');
+      $('#avisoDemo').classList.toggle('oculto', !st.modoDemo);
+      await carregarOperadoras(); await carregarPlanos();
+    } catch { mostrarLogin(); }
+  }
+
+  // ---------- planos ----------
+  async function carregarPlanos() { planos = await api('/planos'); renderPlanos(); }
+  function nomeOp(id) { return operadoras.find((o) => o.id === id)?.nome || id; }
+  function corOp(id) { return operadoras.find((o) => o.id === id)?.cor || '#999'; }
+  function renderPlanos() {
+    const f = $('#filtroPlano').value.toLowerCase(), fo = $('#filtroOp').value;
+    const lista = planos.filter((p) => (!f || p.nome.toLowerCase().includes(f)) && (!fo || p.operadoraId === fo))
+      .sort((a, b) => nomeOp(a.operadoraId).localeCompare(nomeOp(b.operadoraId)) || a.ordem - b.ordem);
+    $('#tabPlanos').innerHTML = lista.map((p) => `<tr class="${p.ativo ? '' : 'inativo'}">
+      <td><span class="bola" style="background:${esc(corOp(p.operadoraId))}"></span>${esc(nomeOp(p.operadoraId))}</td>
+      <td><b>${esc(p.nome)}</b>${p.destaque ? ' <span class="pill">destaque</span>' : ''}${p.apenasCidadePromo ? ' <span class="pill cinza">cidade promo</span>' : ''}</td>
+      <td>${esc(TIPOS[p.tipo] || p.tipo)}</td>
+      <td>${p.velocidadeMbps ? esc(p.velocidadeMbps) + ' Mega' : '—'}</td>
+      <td>${brl(p.preco)}</td>
+      <td>${p.precoPromo != null ? brl(p.precoPromo) + (p.mesesPromo ? ` · ${esc(p.mesesPromo)}m` : '') : '—'}</td>
+      <td><span class="pill ${p.ativo ? '' : 'cinza'}">${p.ativo ? 'ativo' : 'inativo'}</span></td>
+      <td>${new Date(p.atualizadoEm).toLocaleDateString('pt-BR')}</td>
+      <td style="white-space:nowrap"><button class="btn claro" data-editar="${esc(p.id)}">Editar</button> <button class="btn perigo" data-remover="${esc(p.id)}">Remover</button></td>
+    </tr>`).join('') || '<tr><td colspan="9" class="dica">Nenhum plano. Clique em "+ Novo plano".</td></tr>';
+    $$('[data-editar]').forEach((b) => b.addEventListener('click', () => abrirPlano(planos.find((p) => p.id === b.dataset.editar))));
+    $$('[data-remover]').forEach((b) => b.addEventListener('click', async () => {
+      const p = planos.find((x) => x.id === b.dataset.remover);
+      if (!confirm(`Remover o plano "${p.nome}"? Para só tirar do site, use "Ativo no site".`)) return;
+      await api('/planos/' + p.id, { method: 'DELETE' }); flash('Plano removido.'); carregarPlanos();
+    }));
+  }
+  $('#filtroPlano').addEventListener('input', renderPlanos);
+  $('#filtroOp').addEventListener('change', renderPlanos);
+
+  const fP = $('#formPlano');
+  function abrirPlano(p) {
+    editando = p || null;
+    $('#dlgTitulo').textContent = p ? 'Editar plano' : 'Novo plano';
+    fP.reset(); $('#planoErro').classList.add('oculto');
+    fP.operadoraId.innerHTML = operadoras.map((o) => `<option value="${esc(o.id)}">${esc(o.nome)}${o.ativo ? '' : ' (inativa)'}</option>`).join('');
+    const v = p || { ativo: true, tipo: 'internet' };
+    for (const k of ['operadoraId', 'tipo', 'nome', 'velocidadeMbps', 'mesesPromo', 'linkContratacao', 'ordem']) if (v[k] != null) fP[k].value = v[k];
+    for (const k of ['preco', 'precoPromo']) if (v[k] != null) fP[k].value = String(v[k]).replace('.', ',');
+    fP.beneficios.value = (v.beneficios || []).join('\n');
+    for (const k of ['destaque', 'ativo', 'apenasCidadePromo']) fP[k].checked = !!v[k];
+    $('#dlgPlano').showModal();
+  }
+  $('#btnNovo').addEventListener('click', () => abrirPlano());
+  $('#cancelarPlano').addEventListener('click', () => $('#dlgPlano').close());
+  fP.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const d = Object.fromEntries(['operadoraId', 'tipo', 'nome', 'velocidadeMbps', 'preco', 'precoPromo', 'mesesPromo', 'linkContratacao', 'ordem'].map((k) => [k, fP[k].value]));
+    d.beneficios = fP.beneficios.value.split('\n'); d.destaque = fP.destaque.checked; d.ativo = fP.ativo.checked; d.apenasCidadePromo = fP.apenasCidadePromo.checked;
+    try {
+      await api(editando ? '/planos/' + editando.id : '/planos', { method: editando ? 'PUT' : 'POST', body: JSON.stringify(d) });
+      $('#dlgPlano').close(); flash(editando ? 'Plano atualizado.' : 'Plano criado.'); carregarPlanos();
+    } catch (err) { const m = $('#planoErro'); m.textContent = err.message; m.classList.remove('oculto'); }
+  });
+
+  // ---------- importar / exportar ----------
+  $('#btnExportar').addEventListener('click', () => { location.href = '/admin/api/planos/exportar'; });
+  $('#btnImportar').addEventListener('click', () => { $('#formImportar').reset(); $('#impErro').classList.add('oculto'); $('#dlgImportar').showModal(); });
+  $('#cancelarImp').addEventListener('click', () => $('#dlgImportar').close());
+  $('#formImportar').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const arq = e.target.arquivo.files[0]; if (!arq) return;
+    const substituir = e.target.substituir.checked;
+    if (substituir && !confirm('Isso apaga TODOS os planos atuais e deixa só os da planilha. Continuar?')) return;
+    try {
+      const r = await api('/planos/importar?modo=' + (substituir ? 'substituir' : 'mesclar'), { method: 'POST', body: await arq.text(), csv: true, headers: { 'content-type': 'text/csv' } });
+      $('#dlgImportar').close(); flash(`Importado: ${r.criados} novos, ${r.atualizados} atualizados.`); carregarPlanos();
+    } catch (err) {
+      const m = $('#impErro'); m.innerHTML = esc(err.message) + (err.detalhes ? '<br>' + err.detalhes.map(esc).join('<br>') : ''); m.classList.remove('oculto');
+    }
+  });
+
+  // ---------- operadoras ----------
+  async function carregarOperadoras() {
+    operadoras = await api('/operadoras');
+    $('#filtroOp').innerHTML = '<option value="">Todas as operadoras</option>' + operadoras.map((o) => `<option value="${esc(o.id)}">${esc(o.nome)}</option>`).join('');
+    renderOps();
+  }
+  function linhaOp(o) {
+    return `<div class="ops-linha" data-id="${esc(o.id || '')}">
+      <label>Nome<input name="nome" value="${esc(o.nome)}"></label>
+      <label>Cor<input type="color" name="cor" value="${esc(o.cor || '#0f3a89')}"></label>
+      <label>Cobertura<input name="cobertura" value="${esc(o.cobertura || 'nenhuma')}" list="listasCob"></label>
+      <label>Logo (link https)<input name="logoUrl" value="${esc(o.logoUrl || '')}" placeholder="opcional"></label>
+      <label>Link de contratação<input name="linkContratacao" value="${esc(o.linkContratacao || '')}" placeholder="opcional"></label>
+      <label class="chk"><input type="checkbox" name="ativo" ${o.ativo !== false ? 'checked' : ''}> Ativa</label>
+      <button type="button" class="btn perigo" data-rm title="Remover">×</button>
+    </div>`;
+  }
+  function renderOps() {
+    $('#listaOps').innerHTML = operadoras.map(linhaOp).join('') + '<datalist id="listasCob"><option value="mcc:ceps-claro"><option value="mcc:ceps-nio"><option value="mcc:ceps-tim"><option value="todas"><option value="nenhuma"></datalist>';
+    $$('#listaOps [data-rm]').forEach((b) => b.addEventListener('click', () => b.closest('.ops-linha').remove()));
+  }
+  $('#addOp').addEventListener('click', () => { $('#listaOps').insertAdjacentHTML('afterbegin', linhaOp({ nome: '', cobertura: 'nenhuma', ativo: true })); $('#listaOps [data-rm]').addEventListener('click', (e) => e.target.closest('.ops-linha').remove()); });
+  $('#salvarOps').addEventListener('click', async () => {
+    const lista = $$('#listaOps .ops-linha').map((l) => ({ id: l.dataset.id || undefined, nome: $('[name=nome]', l).value, cor: $('[name=cor]', l).value, cobertura: $('[name=cobertura]', l).value.trim(), logoUrl: $('[name=logoUrl]', l).value.trim(), linkContratacao: $('[name=linkContratacao]', l).value.trim(), ativo: $('[name=ativo]', l).checked }));
+    try { await api('/operadoras', { method: 'PUT', body: JSON.stringify(lista) }); flash('Operadoras salvas.'); await carregarOperadoras(); renderPlanos(); }
+    catch (err) { flash(err.message, 'erro'); }
+  });
+
+  // ---------- contatos ----------
+  async function carregarContatos() {
+    const lista = await api('/contatos');
+    const ORIG = { plano: 'Escolheu plano', 'sem-cobertura': 'Sem cobertura', contato: 'Contato' };
+    $('#tabContatos').innerHTML = lista.map((c) => `<tr><td>${new Date(c.criadoEm).toLocaleString('pt-BR')}</td><td>${esc(c.nome)}</td><td><a href="https://wa.me/55${esc(c.telefone.replace(/^55/, ''))}" target="_blank" rel="noopener">${esc(c.telefone)}</a></td><td>${esc(c.cep)}</td><td>${esc(c.cidade)}${c.uf ? '/' + esc(c.uf) : ''}</td><td>${esc(c.planoNome)}${c.operadora ? ' · ' + esc(c.operadora) : ''}</td><td>${esc(ORIG[c.origem] || c.origem)}</td></tr>`).join('') || '<tr><td colspan="7" class="dica">Nenhum contato ainda.</td></tr>';
+  }
+
+  // ---------- testar ----------
+  $('#formTestar').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pre = $('#resTeste'); pre.classList.remove('oculto'); pre.textContent = 'Consultando…';
+    try { pre.textContent = JSON.stringify(await api('/testar?cep=' + encodeURIComponent(e.target.cep.value)), null, 2); }
+    catch (err) { pre.textContent = 'Erro: ' + err.message; }
+  });
+
+  iniciar();
+})();
+</script>
+</body>
+</html>

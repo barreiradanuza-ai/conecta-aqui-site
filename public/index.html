@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conecta Aqui — Encontre o melhor plano de internet em sua cidade</title>
+<meta name="description" content="Digite o seu CEP, compare e escolha a internet ideal para a sua casa. Internet residencial e combos com TV e celular das principais operadoras.">
+<meta name="theme-color" content="#071b45">
+<link rel="icon" href="/images/favicon.png">
+<link rel="preload" as="image" href="/images/garoto-hero.webp" type="image/webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/estilo.css">
+</head>
+<body>
+
+<!-- 1. TOPO -->
+<header class="topo">
+  <div class="wrap topo-in">
+    <a href="/" class="marca" aria-label="Conecta Aqui — início">
+      <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" width="200" height="40">
+    </a>
+    <nav class="menu" id="menu" aria-label="Principal">
+      <a href="#buscar" data-tipo="internet">Internet</a>
+      <a href="#buscar" data-tipo="combo-tv">Internet + TV</a>
+      <a href="#buscar" data-tipo="combo-movel">Internet + Celular</a>
+      <a href="#buscar" data-tipo="combo-completo">Combos</a>
+      <a href="#operadoras">Operadoras</a>
+    </nav>
+    <a class="btn btn-wa-topo" id="waTopo" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
+    <button class="hamb" id="hamb" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+  <!-- 2. HERO: headline + busca por CEP + recomendação em destaque -->
+  <section class="hero" id="buscar">
+    <div class="wrap hero-in">
+      <div class="hero-txt">
+        <span class="selo"><i></i> Internet residencial, TV e celular</span>
+        <h1>Encontre o <em>melhor plano</em> de internet em sua cidade</h1>
+        <p class="hero-sub">Digite o seu CEP abaixo, compare e escolha a internet ideal para a sua casa</p>
+
+        <form class="busca" id="formBusca" autocomplete="postal-code" novalidate>
+          <div class="abas" role="tablist" aria-label="Tipo de serviço">
+            <button type="button" role="tab" class="aba ativa" data-tipo="todos" aria-selected="true">Todos</button>
+            <button type="button" role="tab" class="aba" data-tipo="internet" aria-selected="false">Internet</button>
+            <button type="button" role="tab" class="aba" data-tipo="combo-tv" aria-selected="false">Internet + TV</button>
+            <button type="button" role="tab" class="aba" data-tipo="combo-movel" aria-selected="false">Internet + Celular</button>
+          </div>
+          <label for="cep" class="rotulo">Qual é o seu CEP?</label>
+          <div class="campo-cep">
+            <input id="cep" name="cep" inputmode="numeric" placeholder="00000-000" maxlength="9" required aria-describedby="cepAjuda">
+            <button class="btn btn-prim" type="submit" id="btnBuscar">Ver planos</button>
+          </div>
+          <div class="busca-rodape" id="cepAjuda">
+            <ul class="garantias"><li>Grátis</li><li>Sem cadastro</li><li>Resultado na hora</li></ul>
+            <a href="https://buscacepinter.correios.com.br/" target="_blank" rel="noopener">Não sei meu CEP</a>
+          </div>
+        </form>
+      </div>
+
+      <div class="hero-foto">
+        <picture>
+          <source srcset="/images/garoto-hero.webp" type="image/webp">
+          <img src="/images/garoto-hero.jpg" alt="Especialista da Conecta Aqui" width="820" height="1041" fetchpriority="high">
+        </picture>
+        <!-- recomendação rotativa (preenchida com os planos em destaque do painel) -->
+        <aside class="recomenda oculto" id="recomenda" aria-label="Recomendação Conecta Aqui">
+          <span class="recomenda-tit">Recomendação Conecta Aqui</span>
+          <div id="recomendaCorpo"></div>
+          <div class="recomenda-pontos" id="recomendaPontos"></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTADOS DA BUSCA -->
+  <section class="resultados oculto" id="resultados" aria-live="polite">
+    <div class="wrap">
+      <div class="res-cab">
+        <div>
+          <h2 id="resTitulo">Planos disponíveis</h2>
+          <p id="resEndereco" class="muted"></p>
+        </div>
+        <label class="res-ctrl">Ordenar
+          <select id="ordem">
+            <option value="relevancia">Recomendados</option>
+            <option value="preco">Menor preço</option>
+            <option value="velocidade">Maior velocidade</option>
+          </select>
+        </label>
+      </div>
+      <div class="filtros">
+        <div class="chips" id="chipsTipos" aria-label="Tipo de serviço"></div>
+        <div class="chips" id="chipsOperadoras" aria-label="Operadoras"></div>
+      </div>
+      <div class="aviso-demo oculto" id="avisoDemo">Modo de demonstração: a cobertura exibida é fictícia, apenas para teste.</div>
+      <div class="grade" id="gradePlanos"></div>
+      <div class="sem-cobertura oculto" id="semCobertura">
+        <img src="/images/garoto-rosto.webp" alt="" width="88" height="88" class="avatar">
+        <h3>Ainda não encontramos planos para esse CEP</h3>
+        <p class="muted">Deixe seu contato que um especialista da Conecta Aqui confere outras opções para o seu endereço e te chama.</p>
+        <button class="btn btn-prim" data-abrir-contato="sem-cobertura">Quero ser avisado</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. COMPARE SERVIÇOS -->
+  <section class="secao secao-servicos" id="servicos">
+    <div class="wrap">
+      <div class="cab-secao centro">
+        <h2>Compare serviços e economize</h2>
+        <p class="muted">Escolha o que você quer contratar e veja as opções do seu endereço.</p>
+      </div>
+      <div class="servicos">
+        <button class="servico" data-ir-tipo="internet">
+          <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5.5 9v11h13V9"/><path d="M9.5 15.5a3.5 3.5 0 0 1 5 0M12 18.5h.01"/></svg></span>
+          <h3>Internet residencial</h3>
+          <p>Fibra para navegar, trabalhar e assistir sem travar.</p>
+        </button>
+        <button class="servico" data-ir-tipo="combo-tv">
+          <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+          <h3>Internet + TV</h3>
+          <p>Canais, filmes e esportes junto com a internet.</p>
+        </button>
+        <button class="servico" data-ir-tipo="combo-movel">
+          <span class="ico"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></svg></span>
+          <h3>Internet + Celular</h3>
+          <p>Wi-Fi em casa e internet no chip, com desconto.</p>
+        </button>
+        <button class="servico" data-ir-tipo="combo-completo">
+          <span class="ico"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="12" height="9" rx="1.5"/><rect x="16.5" y="8" width="5" height="11" rx="1.2"/><path d="M6 19h5"/></svg></span>
+          <h3>Combo completo</h3>
+          <p>Internet, TV e celular numa conta só.</p>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. OFERTAS EXCLUSIVAS DO MÊS -->
+  <section class="secao secao-clara" id="ofertas">
+    <div class="wrap">
+      <div class="cab-secao">
+        <span class="sobre">Ofertas do mês</span>
+        <h2>Ofertas de internet e combos selecionadas para você</h2>
+        <p class="muted">Compare preço, velocidade e benefícios. Depois confira se atendem o seu endereço pelo CEP.</p>
+      </div>
+      <div class="grade" id="gradeDestaques"></div>
+    </div>
+  </section>
+
+  <!-- 5. OPERADORAS -->
+  <section class="secao" id="operadoras">
+    <div class="wrap">
+      <div class="cab-secao">
+        <span class="sobre">Operadoras</span>
+        <h2>Confira as operadoras com ofertas neste mês</h2>
+        <p class="muted">Trabalhamos com as principais operadoras de fibra do país.</p>
+      </div>
+      <div class="ops-grade" id="faixaOps"></div>
+    </div>
+  </section>
+
+  <!-- 6. BANNER ESPECIALISTA -->
+  <section class="banner">
+    <div class="wrap banner-in">
+      <picture class="banner-foto">
+        <source srcset="/images/garoto-corpo.webp" type="image/webp">
+        <img src="/images/garoto-corpo.jpg" alt="" width="700" height="1050" loading="lazy">
+      </picture>
+      <div class="banner-txt">
+        <span class="sobre">Atendimento humano</span>
+        <h2>Ficou em dúvida? Um especialista escolhe com você.</h2>
+        <p>Conte como você usa a internet em casa e indicamos o plano ou combo que faz mais sentido para o seu bolso.</p>
+        <div class="banner-btns">
+          <a class="btn btn-prim" id="waBanner" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
+          <a class="btn btn-contorno" href="#buscar">Buscar pelo CEP</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. GRÁTIS E SEM CADASTRO: 3 PASSOS -->
+  <section class="secao" id="como-funciona">
+    <div class="wrap">
+      <div class="cab-secao centro">
+        <span class="sobre">Como funciona</span>
+        <h2>Comparar na Conecta Aqui é grátis e não precisa de cadastro</h2>
+      </div>
+      <ol class="passos">
+        <li><b>1</b><h3>Escolha o serviço</h3><p>Só internet ou combo com TV e celular: você decide o que comparar.</p></li>
+        <li><b>2</b><h3>Informe o CEP</h3><p>Mostramos apenas as operadoras que chegam até a sua rua.</p></li>
+        <li><b>3</b><h3>Compare e contrate</h3><p>Veja tudo lado a lado e conte com a nossa equipe até a instalação.</p></li>
+      </ol>
+      <div class="centro" style="margin-top:40px"><a href="#buscar" class="btn btn-prim">Comparar planos</a></div>
+    </div>
+  </section>
+
+  <!-- 8. SOBRE: É CONFIÁVEL? É OPERADORA? -->
+  <section class="secao secao-clara">
+    <div class="wrap sobre-grade">
+      <div>
+        <span class="sobre">Sobre a Conecta Aqui</span>
+        <h2>Quem somos e como ganhamos dinheiro</h2>
+      </div>
+      <div class="sobre-itens">
+        <div><h3>Somos uma operadora?</h3><p>Não. A Conecta Aqui é um comparador: reunimos as ofertas de várias operadoras para você escolher a melhor para o seu endereço.</p></div>
+        <div><h3>É confiável?</h3><p>Sim. A contratação é feita com a própria operadora, e a nossa equipe acompanha você em todo o processo.</p></div>
+        <div><h3>Quanto custa?</h3><p>Nada. Você paga só a mensalidade do plano para a operadora. Somos remunerados pelas parceiras quando uma contratação acontece.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. POR QUE USAR -->
+  <section class="secao secao-escura">
+    <div class="wrap confianca">
+      <div class="confianca-foto">
+        <picture>
+          <source srcset="/images/garoto-atendimento.webp" type="image/webp">
+          <img src="/images/garoto-atendimento.jpg" alt="Especialista da Conecta Aqui" width="820" height="875" loading="lazy">
+        </picture>
+      </div>
+      <div>
+        <span class="sobre">Por que a Conecta Aqui</span>
+        <h2>Mais clareza para escolher. Menos tempo perdido.</h2>
+        <ul class="pontos">
+          <li><h3>Tudo num só lugar</h3><p>Internet, TV e celular comparados na mesma tela.</p></li>
+          <li><h3>Cobertura real</h3><p>Só aparecem planos de operadoras que atendem o seu CEP.</p></li>
+          <li><h3>Ofertas atualizadas</h3><p>Nossa equipe revisa preços e promoções com frequência.</p></li>
+          <li><h3>Gente de verdade</h3><p>Tire dúvidas pelo WhatsApp com um especialista antes de decidir.</p></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. DÚVIDAS -->
+  <section class="secao" id="duvidas">
+    <div class="wrap estreito">
+      <div class="cab-secao centro">
+        <span class="sobre">Dúvidas frequentes</span>
+        <h2>Perguntas que ajudam você a decidir</h2>
+      </div>
+      <details><summary>Como vocês sabem quais operadoras atendem meu endereço?</summary><p>Mantemos uma base de cobertura por CEP atualizada com as operadoras. Em alguns casos a operadora ainda confirma a viabilidade no número do imóvel.</p></details>
+      <details><summary>Vale a pena contratar internet com TV ou celular junto?</summary><p>Muitas vezes sim: os combos costumam sair mais baratos do que contratar cada serviço separado, e você fica com uma conta só.</p></details>
+      <details><summary>Quanto de velocidade eu preciso?</summary><p>Para uma ou duas pessoas navegando e vendo vídeos, 300 a 500 Mega costumam bastar. Para famílias, home office com chamadas de vídeo ou jogos online, prefira 500 Mega ou mais.</p></details>
+      <details><summary>O preço promocional vale para sempre?</summary><p>Não necessariamente. Quando há promoção, mostramos por quantos meses ela vale e o valor depois desse período.</p></details>
+      <details><summary>Não encontrei planos para o meu CEP. E agora?</summary><p>Deixe seu contato na busca. Nossa equipe verifica outras opções e avisa quando houver cobertura na sua região.</p></details>
+    </div>
+  </section>
+
+  <section class="cta-final">
+    <div class="wrap cta-in">
+      <h2>Pronto para pagar menos por uma internet melhor?</h2>
+      <a href="#buscar" class="btn btn-prim">Buscar pelo meu CEP</a>
+    </div>
+  </section>
+</main>
+
+<!-- 11. RODAPÉ -->
+<footer class="rodape">
+  <div class="wrap rodape-in">
+    <div>
+      <img src="/images/logo-negativo-horizontal.png" alt="Conecta Aqui" width="180" height="36">
+      <p class="muted">Comparamos internet residencial e combos com TV e celular para o seu endereço e ajudamos você a escolher com mais clareza.</p>
+    </div>
+    <div>
+      <h4>Serviços</h4>
+      <a href="#buscar" data-tipo="internet">Internet residencial</a><a href="#buscar" data-tipo="combo-tv">Internet + TV</a><a href="#buscar" data-tipo="combo-movel">Internet + Celular</a><a href="#buscar" data-tipo="combo-completo">Combo completo</a>
+    </div>
+    <div>
+      <h4>Conecta Aqui</h4>
+      <a href="#como-funciona">Como funciona</a><a href="#ofertas">Ofertas do mês</a><a href="#operadoras">Operadoras</a><a href="#duvidas">Dúvidas</a>
+    </div>
+    <div id="rodapeContato">
+      <h4>Contato</h4>
+    </div>
+  </div>
+  <div class="wrap legal">© <span id="ano"></span> Conecta Aqui. Preços e condições definidos pelas operadoras e sujeitos a alteração e à viabilidade técnica no endereço.</div>
+</footer>
+
+<a class="wa-flutuante" id="waFlutuante" href="#" target="_blank" rel="noopener" aria-label="Falar no WhatsApp com um especialista">
+  <img src="/images/garoto-rosto.webp" alt="" width="56" height="56">
+  <span class="wa-selo"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm4.5 12.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg></span>
+</a>
+
+<!-- MODAL DE CONTATO -->
+<dialog id="modal" class="modal">
+  <form method="dialog" class="modal-in" id="formContato" novalidate>
+    <button class="fechar" value="cancel" aria-label="Fechar">×</button>
+    <img src="/images/garoto-rosto.webp" alt="" width="64" height="64" class="avatar">
+    <h3 id="modalTitulo">Falta pouco!</h3>
+    <p id="modalTexto" class="muted">Deixe seu nome e telefone. Em seguida abrimos o WhatsApp para você falar com um especialista.</p>
+    <label>Nome<input name="nome" autocomplete="name" required maxlength="80"></label>
+    <label>WhatsApp com DDD<input name="telefone" autocomplete="tel" inputmode="tel" required placeholder="(21) 90000-0000" maxlength="16"></label>
+    <input name="site" class="oculto" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <p class="erro" id="modalErro" role="alert"></p>
+    <button class="btn btn-prim largo" type="submit" id="btnEnviar" value="default">Continuar</button>
+    <small class="muted">Usamos seus dados só para falar sobre sua contratação.</small>
+  </form>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>
