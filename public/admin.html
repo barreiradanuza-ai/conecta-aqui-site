@@ -382,17 +382,19 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   });
 
   // ---------- slides ----------
-  const IMAGENS_PADRAO = ['/images/garoto-hero.webp', '/images/garoto-atendimento.webp', '/images/garoto-corpo.webp', '/images/garoto-rosto.webp'];
+  const IMAGENS_PADRAO = ['/images/persona-meio.webp', '/images/persona-inteiro.webp'];
   const ABAS = { todos: 'Todos', internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo' };
   function edSlide(x) {
     const opcoesImg = [...new Set([...IMAGENS_PADRAO, x.imagem].filter(Boolean))].map((u) => `<option value="${esc(u)}" ${u === x.imagem ? 'selected' : ''}>${esc(u.split('/').pop().split('?')[0])}</option>`).join('');
-    return `<div class="slide-ed">
-      <div><img class="mini" src="${esc(x.imagem || IMAGENS_PADRAO[0])}" alt=""></div>
+    return `<div class="slide-ed" data-filtro="${esc(x.filtro || '')}">
+      <div><img class="mini" src="${esc(x.visual === 'plano' ? '/images/icone-oficial.png' : (x.imagem || IMAGENS_PADRAO[0]))}" alt="" style="object-fit:contain;background:#071b45"></div>
       <div class="form" style="padding:0;gap:10px">
         <div class="g2">
           <label>Selo (texto pequeno acima)<input name="selo" value="${esc(x.selo || '')}" maxlength="50"></label>
-          <label>Foto<select name="imagem">${opcoesImg}</select></label>
-          <label>Enviar outra foto<input type="file" accept="image/png,image/jpeg,image/webp" data-foto></label>
+          <label>Visual do slide<select name="visual"><option value="persona" ${x.visual !== 'plano' ? 'selected' : ''}>Foto da persona</option><option value="plano" ${x.visual === 'plano' ? 'selected' : ''}>Cartão de promoção (plano)</option></select></label>
+          <label data-so="plano">Plano em destaque<select name="planoId"><option value="">${x.filtro ? 'Automático (' + esc(x.filtro) + ')' : 'Escolha um plano'}</option>${planos.filter((p) => p.ativo).map((p) => `<option value="${esc(p.id)}" ${p.id === x.planoId ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>
+          <label data-so="persona">Foto<select name="imagem">${opcoesImg}</select></label>
+          <label data-so="persona">Enviar outra foto<input type="file" accept="image/png,image/jpeg,image/webp" data-foto></label>
         </div>
         <label>Título<input name="titulo" value="${esc(x.titulo || '')}" maxlength="120"></label>
         <label>Subtítulo<input name="subtitulo" value="${esc(x.subtitulo || '')}" maxlength="220"></label>
@@ -409,6 +411,9 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     $$('#listaSlides .slide-ed').forEach((el) => {
       if (el.dataset.ligado) return; el.dataset.ligado = '1';
       $('[name=imagem]', el).addEventListener('change', (e) => { $('.mini', el).src = e.target.value; });
+      const vis = $('[name=visual]', el);
+      const atualizaVis = () => $$('[data-so]', el).forEach((c) => c.classList.toggle('oculto', c.dataset.so !== vis.value));
+      vis.addEventListener('change', atualizaVis); atualizaVis();
       $('[data-rm-slide]', el).addEventListener('click', () => el.remove());
       $('[data-sobe]', el).addEventListener('click', () => { if (el.previousElementSibling) el.parentNode.insertBefore(el, el.previousElementSibling); });
       $('[data-desce]', el).addEventListener('click', () => { if (el.nextElementSibling) el.parentNode.insertBefore(el.nextElementSibling, el); });
@@ -423,9 +428,9 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     });
   }
   async function carregarSlides() { const lista = await api('/slides'); $('#listaSlides').innerHTML = lista.map(edSlide).join(''); ligarSlides(); }
-  $('#addSlide').addEventListener('click', () => { $('#listaSlides').insertAdjacentHTML('beforeend', edSlide({ titulo: '', subtitulo: '', selo: '', imagem: IMAGENS_PADRAO[0], ativo: true })); ligarSlides(); });
+  $('#addSlide').addEventListener('click', () => { $('#listaSlides').insertAdjacentHTML('beforeend', edSlide({ titulo: '', subtitulo: '', selo: '', imagem: IMAGENS_PADRAO[0], visual: 'plano', ativo: true })); ligarSlides(); });
   $('#salvarSlides').addEventListener('click', async () => {
-    const lista = $$('#listaSlides .slide-ed').map((el) => ({ selo: $('[name=selo]', el).value, titulo: $('[name=titulo]', el).value, subtitulo: $('[name=subtitulo]', el).value, imagem: $('[name=imagem]', el).value, ativo: $('[name=ativo]', el).checked }));
+    const lista = $$('#listaSlides .slide-ed').map((el) => ({ selo: $('[name=selo]', el).value, titulo: $('[name=titulo]', el).value, subtitulo: $('[name=subtitulo]', el).value, imagem: $('[name=imagem]', el).value, visual: $('[name=visual]', el).value, planoId: $('[name=planoId]', el).value, filtro: el.dataset.filtro || '', ativo: $('[name=ativo]', el).checked }));
     try { await api('/slides', { method: 'PUT', body: JSON.stringify(lista) }); flash('Slides salvos. Já estão no site.'); carregarSlides(); }
     catch (er) { flash(er.message, 'erro'); }
   });

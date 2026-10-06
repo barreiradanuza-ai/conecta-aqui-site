@@ -161,7 +161,7 @@ const mcc = http.createServer((req, res) => {
     assert.equal((await send('/admin/api/slides', 'PUT', [{ titulo: '', ativo: true }], H)).s, 400);
     assert.equal((await send('/admin/api/slides', 'PUT', [{ titulo: 'A', ativo: false }], H)).s, 400);
     const r = await send('/admin/api/slides', 'PUT', [{ titulo: 'Novo *slide*', imagem: 'javascript:alert(1)', ativo: true }, { titulo: 'Oculto', ativo: false }], H);
-    assert.equal(r.s, 200); assert.equal(r.j[0].imagem, '/images/garoto-hero.webp');
+    assert.equal(r.s, 200); assert.equal(r.j[0].imagem, '/images/persona-meio.webp');
     assert.equal((await get('/api/slides')).j.length, 1);
   });
   await t('Upload de logo: aceita PNG, recusa outros formatos, serve o arquivo', async () => {

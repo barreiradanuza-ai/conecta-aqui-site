@@ -152,7 +152,18 @@ async function rotaPublica(req, res, url) {
     return json(res, 200, { ok: true });
   }
   if (req.method === 'GET' && url.pathname === '/api/slides') {
-    return json(res, 200, store.load('slides', []).filter((x) => x.ativo));
+    // slides de promoção trazem o plano junto (preço sempre igual ao do painel)
+    const planos = planosPublicos(() => true);
+    const acha = (x) => {
+      if (x.planoId) return planos.find((p) => p.id === x.planoId);
+      const [k, v] = (x.filtro || '').split(':');
+      if (k === 'streaming') return planos.find((p) => p.streaming.some((s) => s.id === v));
+      if (k === 'tipo') return planos.find((p) => p.tipo === v);
+      if (k === 'operadora') return planos.find((p) => p.operadora.id === v);
+      return null;
+    };
+    const lista = store.load('slides', []).filter((x) => x.ativo).map((x) => (x.visual === 'plano' ? { ...x, plano: acha(x) || null } : x));
+    return json(res, 200, lista.filter((x) => x.visual !== 'plano' || x.plano));
   }
   if (req.method === 'POST' && url.pathname === '/api/clique') {
     // registra quem clicou em "Quero este plano" (vai direto para o WhatsApp)

@@ -270,6 +270,7 @@
 
     const qtd = {}; j.planos.forEach((p) => { qtd[p.operadora.id] = (qtd[p.operadora.id] || 0) + 1; });
     logosBusca = j.operadoras.filter((o) => o.logoUrl).map((o) => o.logoUrl).concat(logosBusca);
+    const fl = $('#flutLogos'); if (fl) fl.innerHTML = j.operadoras.filter((o) => o.logoUrl).slice(0, 4).map((o) => `<img src="${esc(o.logoUrl)}" alt="${esc(o.nome)}">`).join('');
     logosBusca.forEach((u) => { const im = new Image(); im.src = u; });
     $('#faixaOps').innerHTML = j.operadoras.map((o) => `<div class="op-card">
         <div class="op-nome">${marca(o)}</div>
@@ -349,20 +350,45 @@
   }
 
   // ---------- slides do topo ----------
+  function promoHtml(p, selo) {
+    const v = p.velocidadeMbps ? vel(p.velocidadeMbps) : null;
+    const st = p.streaming && p.streaming[0];
+    const logo = p.operadora.logoUrl ? `<img src="${esc(p.operadora.logoUrl)}" alt="${esc(p.operadora.nome)}">` : `<b>${esc(p.operadora.nome)}</b>`;
+    const ben = (p.beneficios || []).filter((b) => !/R\$/.test(b)).slice(0, 3);
+    return `<article class="promo">
+      <div class="promo-topo"><span class="promo-logo">${logo}</span><span class="promo-tag">${esc(selo || 'Oferta')}</span></div>
+      ${st ? `<div class="promo-stream">${esc(st.nome)} incluso${p.mesesStreaming ? ` <small>por ${esc(p.mesesStreaming)} meses</small>` : ''}</div>` : `<div class="promo-stream">${esc(TIPO_NOME[p.tipo] || 'Internet')}</div>`}
+      ${v ? `<div class="promo-vel">${esc(v.n)}<small>${v.u}</small></div>` : ''}
+      <div class="promo-nome">${esc(p.nome)}</div>
+      ${ben.length ? `<ul class="promo-ben">${ben.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}
+      <div class="promo-preco">
+        <div>${p.precoPromo != null ? `<div class="de">${brl(p.preco)}</div>` : '<div class="de" style="text-decoration:none">a partir de</div>'}<div class="valor">${brl(p.precoPromo ?? p.preco)}<small>/mês</small></div></div>
+        <button type="button" class="btn" data-ir-cep>Ver se atende meu CEP</button>
+      </div>
+    </article>`;
+  }
+
   const tituloHtml = (t) => esc(t).replace(/\*([^*]+)\*/g, '<em>$1</em>');
   fetch('/api/slides').then((r) => r.json()).then((slides) => {
     if (!slides.length) return;
     const hero = $('.hero');
     let atual = 0, timer = null, pausado = false;
     const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    slides.forEach((x) => { const im = new Image(); im.src = x.imagem; }); // pré-carrega
+    slides.forEach((x) => { if (x.visual !== 'plano' && x.imagem) { const im = new Image(); im.src = x.imagem; } }); // pré-carrega
     function aplicar(k, animar = true) {
       const x = slides[k];
       const troca = () => {
         $('#heroSelo').textContent = x.selo || '';
         $('#heroTitulo').innerHTML = tituloHtml(x.titulo);
         $('#heroSub').textContent = x.subtitulo || '';
-        $('#heroImg').src = x.imagem;
+        if (x.visual === 'plano' && x.plano) {
+          $('#visPromo').innerHTML = promoHtml(x.plano, x.selo);
+          const b = $('#visPromo [data-ir-cep]'); if (b) b.addEventListener('click', () => irParaBusca());
+          $('#visPersona').classList.add('oculto'); $('#visPromo').classList.remove('oculto');
+        } else {
+          if (x.imagem) $('#heroImg').src = x.imagem;
+          $('#visPromo').classList.add('oculto'); $('#visPersona').classList.remove('oculto');
+        }
         $$('#slidePontos button').forEach((b, i) => { b.classList.toggle('on', i === k); b.setAttribute('aria-current', i === k); });
         hero.classList.remove('trocando');
       };

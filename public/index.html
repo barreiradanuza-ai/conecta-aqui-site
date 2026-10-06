@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#071b45">
 <link rel="icon" href="/images/favicon.png">
 <link rel="apple-touch-icon" href="/images/icone-oficial.png">
-<link rel="preload" as="image" href="/images/garoto-hero.webp" type="image/webp">
+<link rel="preload" as="image" href="/images/persona-meio.webp" type="image/webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
@@ -97,17 +97,21 @@
         </ul>
       </div>
 
-      <div class="hero-foto">
-        <img id="heroImg" src="/images/garoto-hero.webp" alt="Especialista da Conecta Aqui" width="820" height="1041" fetchpriority="high">
+      <div class="hero-visual" id="heroVisual">
+        <!-- visual da persona -->
+        <div class="vis vis-persona" id="visPersona">
+          <div class="disco" aria-hidden="true"><span class="anel a1"></span><span class="anel a2"></span></div>
+          <img id="heroImg" class="persona" src="/images/persona-meio.webp" alt="Especialista da Conecta Aqui" width="544" height="933" fetchpriority="high">
+          <div class="flut flut-ops" aria-hidden="true"><small>Comparamos</small><span id="flutLogos"></span></div>
+          <div class="flut flut-vel" aria-hidden="true"><b>até 1 Giga</b><small>fibra óptica</small></div>
+        </div>
+        <!-- visual de promoção (preenchido pelo plano do slide) -->
+        <div class="vis vis-promo oculto" id="visPromo"></div>
         <div class="slide-nav oculto" id="slideNav">
           <button type="button" class="seta" id="slideAnt" aria-label="Slide anterior"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
           <div class="pontos-slide" id="slidePontos"></div>
           <button type="button" class="seta" id="slideProx" aria-label="Próximo slide"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
-        <a class="especialista" id="waHero" href="#" target="_blank" rel="noopener">
-          <img src="/images/garoto-rosto.webp" alt="" width="44" height="44">
-          <span><b>Fale com um especialista</b><small><i></i> Online no WhatsApp</small></span>
-        </a>
       </div>
     </div>
   </section>
@@ -135,7 +139,7 @@
       <div class="aviso-demo oculto" id="avisoDemo">Modo de demonstração: a cobertura exibida é fictícia, apenas para teste.</div>
       <div class="grade" id="gradePlanos"></div>
       <div class="sem-cobertura oculto" id="semCobertura">
-        <img src="/images/garoto-rosto.webp" alt="" width="88" height="88" class="avatar">
+        <span class="icone-circulo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
         <h3>Ainda não encontramos planos para esse CEP</h3>
         <p class="muted">Deixe seu contato que um especialista da Conecta Aqui confere outras opções para o seu endereço e te chama.</p>
         <button class="btn btn-prim" data-abrir-contato="sem-cobertura">Quero ser avisado</button>
@@ -199,21 +203,17 @@
     </div>
   </section>
 
-  <!-- 6. BANNER ESPECIALISTA -->
-  <section class="banner">
-    <div class="wrap banner-in">
-      <picture class="banner-foto">
-        <source srcset="/images/garoto-corpo.webp" type="image/webp">
-        <img src="/images/garoto-corpo.jpg" alt="" width="700" height="1050" loading="lazy">
-      </picture>
-      <div class="banner-txt">
-        <span class="sobre">Atendimento humano</span>
+  <!-- 6. FAIXA ESPECIALISTA -->
+  <section class="faixa-wa">
+    <div class="wrap faixa-in">
+      <span class="faixa-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm4.5 12.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg></span>
+      <div class="faixa-txt">
         <h2>Ficou em dúvida? Um especialista escolhe com você.</h2>
         <p>Conte como você usa a internet em casa e indicamos o plano ou combo que faz mais sentido para o seu bolso.</p>
-        <div class="banner-btns">
-          <a class="btn btn-prim" id="waBanner" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
-          <a class="btn btn-contorno" href="#buscar">Buscar pelo CEP</a>
-        </div>
+      </div>
+      <div class="faixa-btns">
+        <a class="btn btn-wa" id="waBanner" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
+        <a class="btn btn-contorno" href="#buscar">Buscar pelo CEP</a>
       </div>
     </div>
   </section>
@@ -252,11 +252,11 @@
   <!-- 9. POR QUE USAR -->
   <section class="secao secao-escura">
     <div class="wrap confianca">
-      <div class="confianca-foto">
-        <picture>
-          <source srcset="/images/garoto-atendimento.webp" type="image/webp">
-          <img src="/images/garoto-atendimento.jpg" alt="Especialista da Conecta Aqui" width="820" height="875" loading="lazy">
-        </picture>
+      <div class="numeros">
+        <div class="num"><b>4</b><span>operadoras comparadas</span></div>
+        <div class="num"><b>850 mil+</b><span>registros de cobertura por CEP</span></div>
+        <div class="num"><b>3 s</b><span>para ver os planos do seu endereço</span></div>
+        <div class="num"><b>R$ 0</b><span>para comparar, sem cadastro</span></div>
       </div>
       <div>
         <span class="sobre">Por que a Conecta Aqui</span>
@@ -316,16 +316,14 @@
   <div class="wrap legal">© <span id="ano"></span> Conecta Aqui. Preços e condições definidos pelas operadoras e sujeitos a alteração e à viabilidade técnica no endereço.</div>
 </footer>
 
-<a class="wa-flutuante" id="waFlutuante" href="#" target="_blank" rel="noopener" aria-label="Falar no WhatsApp com um especialista">
-  <img src="/images/garoto-rosto.webp" alt="" width="56" height="56">
-  <span class="wa-selo"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm4.5 12.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg></span>
+<a class="wa-flutuante" id="waFlutuante" href="#" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>
 </a>
 
 <!-- MODAL DE CONTATO -->
 <dialog id="modal" class="modal">
   <form method="dialog" class="modal-in" id="formContato" novalidate>
     <button class="fechar" value="cancel" aria-label="Fechar">×</button>
-    <img src="/images/garoto-rosto.webp" alt="" width="64" height="64" class="avatar">
     <h3 id="modalTitulo">Falta pouco!</h3>
     <p id="modalTexto" class="muted">Deixe seu nome e telefone. Em seguida abrimos o WhatsApp para você falar com um especialista.</p>
     <label>Nome<input name="nome" autocomplete="name" required maxlength="80"></label>
