@@ -36,10 +36,11 @@
   fetch('/api/config').then((r) => r.json()).then((c) => {
     estado.config = c;
     const l = linkWhats('Olá! Quero ajuda para escolher um plano de internet.');
-    for (const id of ['waTopo', 'waFlutuante', 'waBanner', 'waHero']) { const el = $('#' + id); if (!el) continue; if (l) el.href = l; else el.classList.add('oculto'); }
+    for (const id of ['waTopo', 'waFlutuante', 'waBanner', 'waHero']) { const el = $('#' + id); if (!el) continue; if (l) { el.href = l; el.addEventListener('click', () => medirLead('whatsapp_geral', { origem: id })); } else el.classList.add('oculto'); }
     const box = $('#rodapeContato');
     if (l) box.insertAdjacentHTML('beforeend', `<a href="${esc(l)}" target="_blank" rel="noopener">WhatsApp</a>`);
     if (c.telefone) box.insertAdjacentHTML('beforeend', `<a href="tel:${esc(c.telefone.replace(/[^\d+]/g, ''))}">${esc(c.telefone)}</a>`);
+    if (c.cnpj) $('#cnpj').textContent = ` · CNPJ ${c.cnpj}`;
     if (c.email) box.insertAdjacentHTML('beforeend', `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`);
   }).catch(() => {});
 
@@ -135,6 +136,7 @@
   const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
   async function buscar(cep) {
+    medirEvento('buscar_cep', { cep_prefixo: cep.slice(0, 5) });
     const fechar = abrirBuscando();
     const minimo = espera(3000);
     const btn = $('#btnBuscar');
@@ -211,6 +213,17 @@
   }
   $('#ordem').addEventListener('change', (e) => { estado.ordem = e.target.value; if (estado.resultado) renderResultados(); });
 
+  // ---------- medição (Google Ads) ----------
+  // Dispara "generate_lead" sempre; se ADS_CONVERSAO estiver configurado (AW-xxx/rotulo), dispara também a conversão.
+  function medirLead(tipo, extra = {}) {
+    try {
+      if (typeof window.gtag !== 'function') return;
+      window.gtag('event', 'generate_lead', { lead_tipo: tipo, ...extra });
+      if (estado.config.adsConversao) window.gtag('event', 'conversion', { send_to: estado.config.adsConversao, value: 1.0, currency: 'BRL' });
+    } catch {}
+  }
+  function medirEvento(nome, extra = {}) { try { if (typeof window.gtag === 'function') window.gtag('event', nome, extra); } catch {} }
+
   // logo oficial (quando cadastrado) ou iniciais + nome
   function marca(o) {
     return o.logoUrl
@@ -252,6 +265,7 @@
       const preco = brl(p.precoPromo ?? p.preco);
       const msg = `Olá! Quero contratar o plano ${p.nome} (${p.operadora.nome}) de ${preco}/mês.\nEndereço: ${enderecoTexto()}`;
       const numero = estado.config.whatsappPlanos || '5511955035657';
+      medirLead('whatsapp_plano', { plano: p.nome, operadora: p.operadora.nome, valor: p.precoPromo ?? p.preco });
       window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
       const r = estado.resultado || {}; const d = enderecoDigitado();
       try {
@@ -336,6 +350,7 @@
       $('#modalErro').textContent = e.message || 'Não foi possível enviar. Tente de novo.'; btn.disabled = false; return;
     }
     btn.disabled = false;
+    medirLead('formulario_' + estado.origemContato);
     modal.close();
     ev.target.reset();
     const d = enderecoDigitado();

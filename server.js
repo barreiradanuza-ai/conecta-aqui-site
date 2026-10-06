@@ -180,7 +180,7 @@ async function rotaPublica(req, res, url) {
     return json(res, 200, { ok: true });
   }
   if (req.method === 'GET' && url.pathname === '/api/config') {
-    return json(res, 200, { whatsapp: (process.env.WHATSAPP_NUMBER || '').replace(/\D/g, ''), whatsappPlanos: (process.env.WHATSAPP_PLANOS || '5511955035657').replace(/\D/g, ''), telefone: process.env.TELEFONE || '', email: process.env.EMAIL_CONTATO || '' });
+    return json(res, 200, { whatsapp: (process.env.WHATSAPP_NUMBER || '').replace(/\D/g, ''), whatsappPlanos: (process.env.WHATSAPP_PLANOS || '5511955035657').replace(/\D/g, ''), telefone: process.env.TELEFONE || '', email: process.env.EMAIL_CONTATO || '', cnpj: process.env.CNPJ || '62.915.438/0001-57', adsConversao: process.env.ADS_CONVERSAO || '' });
   }
   return false;
 }
