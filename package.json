@@ -1,0 +1,12 @@
+{
+  "name": "conecta-ponte",
+  "version": "1.0.0",
+  "description": "Site Conecta Aqui + ponte de cobertura com o app Minha Casa Conectada + painel de planos",
+  "main": "server.js",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/run.js"
+  }
+}
