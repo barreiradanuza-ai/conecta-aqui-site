@@ -50,7 +50,7 @@ const mcc = http.createServer((req, res) => {
     if (u.pathname === '/api/v1/pipelines/p1/stages') return res.end(JSON.stringify({ data: [{ id: 's1', name: 'Novo' }, { id: 's9', name: 'Pendente de Instalacao' }] }));
     if (u.pathname === '/api/v1/tags' && req.method === 'GET') return res.end(JSON.stringify({ data: DC.tags }));
     if (u.pathname === '/api/v1/tags' && req.method === 'POST') { const t = { id: 't' + (DC.tags.length + 1), name: 'googleads' }; DC.tags.push(t); return res.end(JSON.stringify(t)); }
-    if (u.pathname === '/api/v1/conversations') return res.end(JSON.stringify({ data: !Number(u.searchParams.get('skip')) ? [{ id: 'c1', lastReceivedMessageDate: '2026-10-07T10:00:00Z', contact: { name: 'Ana', phone: '+55 21 99999-1234' } }] : [] }));
+    if (u.pathname === '/api/v1/conversations') return res.end(JSON.stringify({ data: !Number(u.searchParams.get('skip')) ? [{ id: 'c1', lastReceivedMessageDate: new Date().toISOString(), contact: { name: 'Ana', phoneNumber: '5521999991234' } }] : [] }));
     if (u.pathname === '/api/v1/conversations/c1/messages') return res.end(JSON.stringify({ data: [{ body: 'Olá! Quero contratar o plano X\n(Ref: G-ABCDE)', received: true }] }));
     if (u.pathname === '/api/v1/leads' && req.method === 'GET') return res.end(JSON.stringify({ data: (u.searchParams.get('search') || '').endsWith('999991234') ? [DC.lead] : [] }));
     if (u.pathname === '/api/v1/leads/L1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { DC.lead.tags = JSON.parse(b).tags; res.end('{}'); }); return; }
@@ -70,6 +70,7 @@ const mcc = http.createServer((req, res) => {
   process.env.CEP_FONTES = 'viacep';
   process.env.DATACRAZY_URL = process.env.MCC_BASE_URL;
   process.env.DATACRAZY_TOKEN = 'dc_teste';
+  process.env.DATACRAZY_ESPACO_MS = '0';
   process.env.ADS_FEED_TOKEN = 'feedtoken1234567890';
   global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] } };
   process.env.MCC_PASSWORD = 'segredo';
