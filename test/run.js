@@ -72,6 +72,8 @@ const mcc = http.createServer((req, res) => {
   process.env.DATACRAZY_TOKEN = 'dc_teste';
   process.env.DATACRAZY_ESPACO_MS = '0';
   process.env.ADS_FEED_TOKEN = 'feedtoken1234567890';
+  process.env.ADS_FEED_USER = 'conectaaqui';
+  process.env.ADS_FEED_PASS = 'senhaFeed';
   global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] } };
   process.env.MCC_PASSWORD = 'segredo';
   process.env.ADMIN_PASSWORD = 'admin123';
@@ -192,7 +194,8 @@ const mcc = http.createServer((req, res) => {
     const d = (await get('/admin/api/datacrazy', H)).j;
     assert.equal(d.cliquesGoogle, 1); assert.equal(d.vinculos, 1); assert.equal(d.conversoes.length, 1);
     assert.ok(d.feedUrl.endsWith('/ads/conversoes/feedtoken1234567890.csv'));
-    const csvR = await fetchOrig(B + '/ads/conversoes/feedtoken1234567890.csv'); const csvT = await csvR.text();
+    assert.equal((await fetchOrig(B + '/ads/conversoes/feedtoken1234567890.csv')).status, 401, 'sem senha recusa');
+    const csvR = await fetchOrig(B + '/ads/conversoes/feedtoken1234567890.csv', { headers: { authorization: 'Basic ' + Buffer.from('conectaaqui:senhaFeed').toString('base64') } }); const csvT = await csvR.text();
     assert.ok(csvT.includes('Parameters:TimeZone=America/Sao_Paulo'));
     assert.ok(csvT.includes('Cj0KCQabc123,Venda - Pendente de instalação,2026-10-07 12:30:00,120.00,BRL'), csvT);
     assert.equal((await fetchOrig(B + '/ads/conversoes/tokenerrado123456789.csv')).status, 404);

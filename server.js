@@ -190,6 +190,12 @@ async function rotaPublica(req, res, url) {
   if (req.method === 'GET' && feed) {
     const tok = process.env.ADS_FEED_TOKEN || '';
     if (!tok || feed[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(feed[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
+    // usuário e senha opcionais (o Google Ads exige preencher): ADS_FEED_USER / ADS_FEED_PASS
+    if (process.env.ADS_FEED_USER) {
+      const esperado = 'Basic ' + Buffer.from(`${process.env.ADS_FEED_USER}:${process.env.ADS_FEED_PASS || ''}`).toString('base64');
+      const veio = String(req.headers.authorization || '');
+      if (veio.length !== esperado.length || !crypto.timingSafeEqual(Buffer.from(veio), Buffer.from(esperado))) return enviar(res, 401, 'Autenticação necessária', 'text/plain; charset=utf-8', { 'www-authenticate': 'Basic realm="conversoes"' });
+    }
     return enviar(res, 200, datacrazy.csvConversoes(), 'text/csv; charset=utf-8');
   }
   if (req.method === 'GET' && url.pathname === '/api/config') {
