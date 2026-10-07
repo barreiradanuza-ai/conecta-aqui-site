@@ -247,7 +247,10 @@
     try {
       if (typeof window.gtag !== 'function') return;
       window.gtag('event', 'generate_lead', { lead_tipo: tipo, ...extra });
-      if (estado.config.adsConversao) window.gtag('event', 'conversion', { send_to: estado.config.adsConversao, value: 1.0, currency: 'BRL' });
+      // Para o Google Ads só conta lead COM cobertura confirmada (escolheu um plano no CEP dele).
+      // Assim o Google aprende a trazer gente de área cabeada, e não qualquer clique no WhatsApp.
+      const comCobertura = tipo === 'whatsapp_plano' || tipo === 'formulario_plano';
+      if (comCobertura && estado.config.adsConversao) window.gtag('event', 'conversion', { send_to: estado.config.adsConversao, value: 1.0, currency: 'BRL' });
     } catch {}
   }
   function medirEvento(nome, extra = {}) { try { if (typeof window.gtag === 'function') window.gtag('event', nome, extra); } catch {} }
