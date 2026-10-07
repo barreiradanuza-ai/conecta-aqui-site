@@ -8,6 +8,26 @@
   const ICONE_WA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>';
   const LOGO_STREAM = { globoplay: '/images/streaming/globoplay.png', paramount: '/images/streaming/paramount.png' };
   const streamMarca = (x) => (LOGO_STREAM[x.id] ? `<img class="stream-logo" src="${LOGO_STREAM[x.id]}" alt="${esc(x.nome)}">` : esc(x.nome));
+  // ---------- rastreio de anúncios (Google Ads → DataCrazy) ----------
+  // Guarda gclid/UTMs por 90 dias e gera um código "G-XXXXX" que vai na mensagem do WhatsApp.
+  const RASTREIO = (() => {
+    let salvo = null;
+    try { salvo = JSON.parse(localStorage.getItem('ca_rastreio') || 'null'); } catch {}
+    if (salvo && Date.now() - new Date(salvo.em).getTime() > 90 * 864e5) salvo = null;
+    const q = new URLSearchParams(location.search);
+    const novo = {};
+    for (const k of ['gclid', 'gbraid', 'wbraid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term']) if (q.get(k)) novo[k] = q.get(k).slice(0, 200);
+    const doGoogle = (o) => o && (o.gclid || o.gbraid || o.wbraid || /google/i.test(o.utm_source || ''));
+    if (doGoogle(novo)) {
+      const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const ref = 'G-' + Array.from(crypto.getRandomValues(new Uint8Array(5)), (b) => letras[b % letras.length]).join('');
+      salvo = { ...novo, ref, em: new Date().toISOString() };
+      try { localStorage.setItem('ca_rastreio', JSON.stringify(salvo)); } catch {}
+    }
+    return doGoogle(salvo) ? salvo : null;
+  })();
+  const comRef = (msg) => (RASTREIO ? `${msg}\n(Ref: ${RASTREIO.ref})` : msg);
+
   const TIPO_NOME = { internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
   // cada aba mostra também o combo completo quando faz sentido
   const TIPO_ABA = { todos: null, internet: ['internet'], 'combo-tv': ['combo-tv', 'combo-completo'], 'combo-movel': ['combo-movel', 'combo-completo'], 'combo-completo': ['combo-completo'] };
@@ -35,8 +55,16 @@
   }
   fetch('/api/config').then((r) => r.json()).then((c) => {
     estado.config = c;
-    const l = linkWhats('Olá! Quero ajuda para escolher um plano de internet.');
-    for (const id of ['waTopo', 'waFlutuante', 'waBanner', 'waHero']) { const el = $('#' + id); if (!el) continue; if (l) { el.href = l; el.addEventListener('click', () => medirLead('whatsapp_geral', { origem: id })); } else el.classList.add('oculto'); }
+    const l = linkWhats(comRef('Olá! Quero ajuda para escolher um plano de internet.'));
+    for (const id of ['waTopo', 'waFlutuante', 'waBanner', 'waHero']) {
+      const el = $('#' + id); if (!el) continue;
+      if (!l) { el.classList.add('oculto'); continue; }
+      el.href = l;
+      el.addEventListener('click', () => {
+        medirLead('whatsapp_geral', { origem: id });
+        if (RASTREIO) try { navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ geral: true, rastreio: RASTREIO })], { type: 'application/json' })); } catch {}
+      });
+    }
     const box = $('#rodapeContato');
     if (l) box.insertAdjacentHTML('beforeend', `<a href="${esc(l)}" target="_blank" rel="noopener">WhatsApp</a>`);
     if (c.telefone) box.insertAdjacentHTML('beforeend', `<a href="tel:${esc(c.telefone.replace(/[^\d+]/g, ''))}">${esc(c.telefone)}</a>`);
@@ -263,13 +291,13 @@
     $$('[data-plano]', container).forEach((b) => b.addEventListener('click', () => {
       const p = planos.find((x) => x.id === b.dataset.plano);
       const preco = brl(p.precoPromo ?? p.preco);
-      const msg = `Olá! Quero contratar o plano ${p.nome} (${p.operadora.nome}) de ${preco}/mês.\nEndereço: ${enderecoTexto()}`;
+      const msg = comRef(`Olá! Quero contratar o plano ${p.nome} (${p.operadora.nome}) de ${preco}/mês.\nEndereço: ${enderecoTexto()}`);
       const numero = estado.config.whatsappPlanos || '5511955035657';
       medirLead('whatsapp_plano', { plano: p.nome, operadora: p.operadora.nome, valor: p.precoPromo ?? p.preco });
       window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
       const r = estado.resultado || {}; const d = enderecoDigitado();
       try {
-        navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ planoNome: p.nome, operadora: p.operadora.nome, cep: r.cep, rua: d.rua || r.endereco?.logradouro, numero: d.numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf })], { type: 'application/json' }));
+        navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ planoNome: p.nome, operadora: p.operadora.nome, cep: r.cep, rua: d.rua || r.endereco?.logradouro, numero: d.numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, rastreio: RASTREIO })], { type: 'application/json' }));
       } catch {}
     }));
   }
@@ -343,7 +371,7 @@
     try {
       const resp = await fetch('/api/contato', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ nome, telefone, site: f.get('site'), cep: r.cep, rua: enderecoDigitado().rua || r.endereco?.logradouro, numero: enderecoDigitado().numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, planoNome: p?.nome, operadora: p?.operadora.nome, origem: estado.origemContato }),
+        body: JSON.stringify({ nome, telefone, site: f.get('site'), cep: r.cep, rua: enderecoDigitado().rua || r.endereco?.logradouro, numero: enderecoDigitado().numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, planoNome: p?.nome, operadora: p?.operadora.nome, origem: estado.origemContato, rastreio: RASTREIO }),
       });
       if (!resp.ok) throw new Error((await resp.json()).erro);
     } catch (e) {
@@ -358,7 +386,7 @@
     const msg = p
       ? `Olá! Sou ${nome}. Tenho interesse no plano ${p.nome} (${p.operadora.nome}). Endereço: ${end}.`
       : `Olá! Sou ${nome}. Busquei internet para o endereço ${end} e quero ajuda.`;
-    const destino = p?.linkContratacao && !estado.config.whatsapp ? p.linkContratacao : linkWhats(msg);
+    const destino = p?.linkContratacao && !estado.config.whatsapp ? p.linkContratacao : linkWhats(comRef(msg));
     if (destino && estado.origemContato !== 'sem-cobertura') window.open(destino, '_blank', 'noopener');
     else alertaOk();
   });

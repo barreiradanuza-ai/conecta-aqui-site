@@ -43,6 +43,20 @@ const mcc = http.createServer((req, res) => {
     const items = (LISTAS[m[1]] || []).filter((v) => v.includes(q)).map((v) => ({ id: v, value: v }));
     return res.end(JSON.stringify({ items, total: items.length, page: 1, pageSize: 100 }));
   }
+  if (u.pathname.startsWith('/api/v1/')) {
+    if (req.headers.authorization !== 'Bearer dc_teste') { res.statusCode = 401; return res.end('{}'); }
+    const DC = global.DC;
+    if (u.pathname === '/api/v1/pipelines') return res.end(JSON.stringify({ data: [{ id: 'p1', name: 'Vendas' }] }));
+    if (u.pathname === '/api/v1/pipelines/p1/stages') return res.end(JSON.stringify({ data: [{ id: 's1', name: 'Novo' }, { id: 's9', name: 'Pendente de Instalacao' }] }));
+    if (u.pathname === '/api/v1/tags' && req.method === 'GET') return res.end(JSON.stringify({ data: DC.tags }));
+    if (u.pathname === '/api/v1/tags' && req.method === 'POST') { const t = { id: 't' + (DC.tags.length + 1), name: 'googleads' }; DC.tags.push(t); return res.end(JSON.stringify(t)); }
+    if (u.pathname === '/api/v1/conversations') return res.end(JSON.stringify({ data: !Number(u.searchParams.get('skip')) ? [{ id: 'c1', lastReceivedMessageDate: '2026-10-07T10:00:00Z', contact: { name: 'Ana', phone: '+55 21 99999-1234' } }] : [] }));
+    if (u.pathname === '/api/v1/conversations/c1/messages') return res.end(JSON.stringify({ data: [{ body: 'Olá! Quero contratar o plano X\n(Ref: G-ABCDE)', received: true }] }));
+    if (u.pathname === '/api/v1/leads' && req.method === 'GET') return res.end(JSON.stringify({ data: (u.searchParams.get('search') || '').endsWith('999991234') ? [DC.lead] : [] }));
+    if (u.pathname === '/api/v1/leads/L1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { DC.lead.tags = JSON.parse(b).tags; res.end('{}'); }); return; }
+    if (u.pathname === '/api/v1/businesses') return res.end(JSON.stringify({ data: u.searchParams.get('skip') === '0' ? [{ id: 'B1', code: 101, leadId: 'L1', stageId: 's9', lastMovedAt: '2026-10-07T15:30:00.000Z', total: 120 }] : [] }));
+    res.statusCode = 404; return res.end('{}');
+  }
   const vc = u.pathname.match(/^\/ws\/(\d{8})\/json\/$/);
   if (vc) return res.end(JSON.stringify({ cep: vc[1], uf: vc[1] < '20000000' ? 'SP' : 'RJ', localidade: vc[1] < '20000000' ? 'São Paulo' : 'Rio de Janeiro' }));
   res.statusCode = 404; res.end('{}');
@@ -53,6 +67,11 @@ const mcc = http.createServer((req, res) => {
   process.env.MCC_BASE_URL = `http://127.0.0.1:${mcc.address().port}`;
   process.env.MCC_EMAIL = 'ponte@x.com';
   process.env.VIACEP_URL = process.env.MCC_BASE_URL;
+  process.env.CEP_FONTES = 'viacep';
+  process.env.DATACRAZY_URL = process.env.MCC_BASE_URL;
+  process.env.DATACRAZY_TOKEN = 'dc_teste';
+  process.env.ADS_FEED_TOKEN = 'feedtoken1234567890';
+  global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] } };
   process.env.MCC_PASSWORD = 'segredo';
   process.env.ADMIN_PASSWORD = 'admin123';
   process.env.WHATSAPP_NUMBER = '5521900000000';
@@ -160,6 +179,27 @@ const mcc = http.createServer((req, res) => {
     assert.ok(f.topo.every((l) => /^\d{5}$/.test(l.prefixo)));
     const r = await fetchOrig(B + '/admin/api/faixas/exportar', { headers: { cookie } });
     assert.ok((await r.text()).includes('prefixo;uf;cidade;total;'));
+  });
+  await t('Google Ads → DataCrazy: código no WhatsApp vira tag e venda vira conversão offline', async () => {
+    // clique em "Quero este plano" vindo de anúncio
+    await send('/api/clique', 'POST', { planoNome: 'Nio Fibra', rastreio: { ref: 'G-ABCDE', gclid: 'Cj0KCQabc123', utm_source: 'google' } });
+    // clique sem anúncio não registra
+    await send('/api/clique', 'POST', { planoNome: 'Nio Fibra', rastreio: { ref: 'G-ZZZZZ' } });
+    const st = (await send('/admin/api/datacrazy/sincronizar', 'POST', {}, H)).j;
+    assert.ok(!st.erro, st.erro);
+    assert.deepEqual(global.DC.lead.tags.map((x) => x.id).sort(), ['t1', 't2'], 'tag googleads adicionada mantendo as outras');
+    const d = (await get('/admin/api/datacrazy', H)).j;
+    assert.equal(d.cliquesGoogle, 1); assert.equal(d.vinculos, 1); assert.equal(d.conversoes.length, 1);
+    assert.ok(d.feedUrl.endsWith('/ads/conversoes/feedtoken1234567890.csv'));
+    const csvR = await fetchOrig(B + '/ads/conversoes/feedtoken1234567890.csv'); const csvT = await csvR.text();
+    assert.ok(csvT.includes('Parameters:TimeZone=America/Sao_Paulo'));
+    assert.ok(csvT.includes('Cj0KCQabc123,Venda - Pendente de instalação,2026-10-07 12:30:00,120.00,BRL'), csvT);
+    assert.equal((await fetchOrig(B + '/ads/conversoes/tokenerrado123456789.csv')).status, 404);
+    // segunda sincronização não duplica
+    await send('/admin/api/datacrazy/sincronizar', 'POST', {}, H);
+    assert.equal((await get('/admin/api/datacrazy', H)).j.conversoes.length, 1);
+    const diag = (await get('/admin/api/datacrazy/diagnostico', H)).j;
+    assert.ok(diag.etapaEncontrada && diag.tagExiste && diag.temTelefoneNaConversa, JSON.stringify(diag));
   });
   await t('Arquivos estáticos e proteção de caminho', async () => {
     assert.equal((await fetchOrig(B + '/')).status, 200);

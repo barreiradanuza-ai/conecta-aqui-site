@@ -8,6 +8,8 @@ const crypto = require('node:crypto');
 const store = require('./lib/store');
 const csv = require('./lib/csv');
 const faixas = require('./lib/faixas');
+const rastreio = require('./lib/rastreio');
+const datacrazy = require('./lib/datacrazy');
 const cobertura = require('./lib/cobertura');
 const monitor = require('./lib/monitor');
 const UPLOADS_DIR = path.join(store.DATA_DIR, 'uploads');
@@ -149,6 +151,8 @@ async function rotaPublica(req, res, url) {
       planoNome: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40),
       origem: ['plano', 'sem-cobertura', 'contato'].includes(b.origem) ? b.origem : 'contato',
     });
+    const rc = rastreio.registrarFormulario(leads[leads.length - 1], b);
+    if (rc) Object.assign(leads[leads.length - 1], { ref: rc.ref, canal: 'googleads' });
     store.save('leads', leads.slice(-20000));
     return json(res, 200, { ok: true });
   }
@@ -175,10 +179,18 @@ async function rotaPublica(req, res, url) {
       id: store.newId(), criadoEm: new Date().toISOString(), nome: '', telefone: '',
       cep: cobertura.limparCep(b.cep).slice(0, 8), rua: String(b.rua || '').slice(0, 120), numero: String(b.numero || '').slice(0, 10), bairro: String(b.bairro || '').slice(0, 60),
       cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2),
-      planoNome: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40), origem: 'whatsapp',
+      planoNome: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40), origem: b.geral ? 'whatsapp-geral' : 'whatsapp',
     });
+    const rc = rastreio.registrarClique(b, { plano: String(b.planoNome || '').slice(0, 100), cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2) });
+    if (rc) Object.assign(leads[leads.length - 1], { ref: rc.ref, canal: 'googleads' });
     store.save('leads', leads.slice(-20000));
     return json(res, 200, { ok: true });
+  }
+  const feed = url.pathname.match(/^\/ads\/conversoes\/([A-Za-z0-9_-]{16,})\.csv$/);
+  if (req.method === 'GET' && feed) {
+    const tok = process.env.ADS_FEED_TOKEN || '';
+    if (!tok || feed[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(feed[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
+    return enviar(res, 200, datacrazy.csvConversoes(), 'text/csv; charset=utf-8');
   }
   if (req.method === 'GET' && url.pathname === '/api/config') {
     return json(res, 200, { whatsapp: (process.env.WHATSAPP_NUMBER || '').replace(/\D/g, ''), whatsappPlanos: (process.env.WHATSAPP_PLANOS || '5511955035657').replace(/\D/g, ''), telefone: process.env.TELEFONE || '', email: process.env.EMAIL_CONTATO || '', cnpj: process.env.CNPJ || '62.915.438/0001-57', adsConversao: process.env.ADS_CONVERSAO || '' });
@@ -316,6 +328,14 @@ async function rotaAdmin(req, res, url) {
     const cols = ['prefixo', 'uf', 'cidade', 'total', ...r.operadoras];
     return enviar(res, 200, csv.stringify(r.linhas, cols), 'text/csv; charset=utf-8', { 'content-disposition': 'attachment; filename="faixas-cep-cobertura.csv"' });
   }
+  // --- DataCrazy / Google Ads ---
+  if (p === '/datacrazy' && req.method === 'GET') {
+    const tok = process.env.ADS_FEED_TOKEN || '';
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    return json(res, 200, { ...datacrazy.status(), feedUrl: tok ? `https://${host}/ads/conversoes/${tok}.csv` : '', cliquesGoogle: Object.keys(store.load('ads-cliques', {})).length });
+  }
+  if (p === '/datacrazy/sincronizar' && req.method === 'POST') return json(res, 200, await datacrazy.sincronizar(rastreio));
+  if (p === '/datacrazy/diagnostico' && req.method === 'GET') return json(res, 200, await datacrazy.diagnostico());
   // --- testar cobertura ---
   if (p === '/testar' && req.method === 'GET') {
     cobertura.limparCache();
@@ -351,7 +371,7 @@ const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://local');
   try {
     if (url.pathname.startsWith('/admin/api/')) return await rotaAdmin(req, res, url);
-    if (url.pathname.startsWith('/api/')) {
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ads/')) {
       const r = await rotaPublica(req, res, url);
       if (r === false) json(res, 404, { erro: 'Rota não encontrada' });
       return;
@@ -368,6 +388,7 @@ const servidor = http.createServer(async (req, res) => {
 if (require.main === module) {
   servidor.listen(PORT, () => {
     if (process.env.MONITOR_OFERTAS !== 'off') monitor.iniciar();
+    datacrazy.iniciar(rastreio);
     console.log(`Conecta Aqui rodando na porta ${PORT}`);
     if (cobertura.MODO_DEMO) console.warn('ATENÇÃO: MCC_EMAIL/MCC_PASSWORD não definidos. Cobertura em MODO DEMONSTRAÇÃO (dados fictícios).');
     if (!ADMIN_PASSWORD) console.warn('ATENÇÃO: ADMIN_PASSWORD não definida. O painel ficará bloqueado.');

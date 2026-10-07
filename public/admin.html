@@ -88,6 +88,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       <button data-aba="slides">Slides</button>
       <button data-aba="operadoras">Operadoras</button>
       <button data-aba="contatos">Contatos</button>
+      <button data-aba="ads">Google Ads</button>
       <button data-aba="testar">Testar CEP</button>
     </nav>
     <button class="btn claro sair" id="sair">Sair</button>
@@ -154,6 +155,22 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
           <thead><tr><th>Data</th><th>Nome</th><th>Telefone</th><th>Endereço</th><th>Cidade</th><th>Plano</th><th>Origem</th></tr></thead>
           <tbody id="tabContatos"></tbody>
         </table></div>
+      </div>
+    </div>
+
+    <!-- GOOGLE ADS / DATACRAZY -->
+    <div data-painel="ads" class="oculto">
+      <div class="card">
+        <div class="barra" style="justify-content:space-between"><h2>Google Ads + DataCrazy</h2><div><button class="btn" id="btnDcDiag" type="button">Diagnóstico</button> <button class="btn prim" id="btnDcSync" type="button">Sincronizar agora</button></div></div>
+        <p class="dica">Quem chega por anúncio do Google recebe um código (ex.: <b>Ref: G-7K3P2</b>) na mensagem do WhatsApp. A cada 5 minutos o sistema acha esse código nas conversas do DataCrazy e coloca a tag no lead. Quando o negócio entra na etapa de ganho, vira uma venda no Google Ads.</p>
+        <div id="dcResumo" class="dica">Carregando…</div>
+        <h3 style="margin-top:18px">Endereço para o Google Ads importar as vendas</h3>
+        <pre id="dcFeed" style="white-space:pre-wrap;word-break:break-all"></pre>
+        <h3 style="margin-top:18px">Últimas vendas enviadas</h3>
+        <div id="dcConversoes" class="dica"></div>
+        <h3 style="margin-top:18px">Atividade</h3>
+        <pre id="dcLog" style="max-height:280px;overflow:auto"></pre>
+        <pre id="dcDiag" class="oculto" style="white-space:pre-wrap"></pre>
       </div>
     </div>
 
@@ -495,6 +512,22 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     try { pre.textContent = JSON.stringify(await api('/testar?cep=' + encodeURIComponent(e.target.cep.value)), null, 2); }
     catch (err) { pre.textContent = 'Erro: ' + err.message; }
   });
+
+  // ---------- Google Ads + DataCrazy ----------
+  async function verDc() {
+    try {
+      const d = await api('/datacrazy');
+      $('#dcResumo').innerHTML = !d.configurado
+        ? 'Integração desligada: falta a variável <b>DATACRAZY_TOKEN</b> no Railway.'
+        : `Tag: <b>${esc(d.tag)}</b> · Etapa de ganho: <b>${esc(d.etapa)}</b> · Cliques do Google registrados: <b>${d.cliquesGoogle}</b> · Leads ligados ao Google: <b>${d.vinculos}</b> · Última sincronização: <b>${d.ultima ? new Date(d.ultima).toLocaleString('pt-BR') : '—'}</b>${d.erro ? `<br><span style="color:#b42318">Erro: ${esc(d.erro)}</span>` : ''}`;
+      $('#dcFeed').textContent = d.feedUrl || 'Falta a variável ADS_FEED_TOKEN no Railway.';
+      $('#dcConversoes').innerHTML = d.conversoes.length ? d.conversoes.map((c) => `${new Date(c.hora).toLocaleString('pt-BR')} · ${esc(c.ref)}${c.valor ? ' · ' + c.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : ''}${c.temGclid ? '' : ' · <i>sem gclid (não vai para o Google)</i>'}`).join('<br>') : 'Nenhuma ainda.';
+      $('#dcLog').textContent = (d.log || []).join('\n') || 'Sem atividade ainda.';
+    } catch (err) { $('#dcResumo').textContent = 'Erro: ' + err.message; }
+  }
+  $('#btnDcSync').addEventListener('click', async () => { $('#btnDcSync').disabled = true; try { await api('/datacrazy/sincronizar', { method: 'POST' }); } catch (err) { flash(err.message, 'erro'); } $('#btnDcSync').disabled = false; verDc(); });
+  $('#btnDcDiag').addEventListener('click', async () => { const pre = $('#dcDiag'); pre.classList.remove('oculto'); pre.textContent = 'Consultando o DataCrazy…'; try { pre.textContent = JSON.stringify(await api('/datacrazy/diagnostico'), null, 2); } catch (err) { pre.textContent = 'Erro: ' + err.message; } });
+  document.querySelector('[data-aba="ads"]').addEventListener('click', verDc);
 
   // ---------- faixas de CEP ----------
   async function verFaixas() {
