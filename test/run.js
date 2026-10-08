@@ -51,8 +51,16 @@ const mcc = http.createServer((req, res) => {
     const id = u.pathname.split('/').pop();
     let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { DC.camposNegocio.find((c) => c.id === id).value = JSON.parse(b).value; res.end('{}'); }); return;
   }
+  if (u.pathname.startsWith('/v23.0/') && !['meta_teste', 'meta_bm2'].includes(u.searchParams.get('access_token'))) { res.statusCode = 400; return res.end(JSON.stringify({ error: { message: 'token inválido' } })); }
+  if (u.pathname === '/v23.0/me/adaccounts') return res.end(JSON.stringify({ data: u.searchParams.get('access_token') === 'meta_teste' ? [{ account_id: '111', name: 'Conecta Aqui' }, { account_id: '999', name: 'Outra empresa' }] : [] }));
+  if (u.pathname === '/v23.0/me/businesses') return res.end(JSON.stringify({ data: u.searchParams.get('access_token') === 'meta_bm2' ? [{ id: 'BM2', name: 'Conecta Aqui Ltda' }] : [] }));
+  if (u.pathname === '/v23.0/BM2/owned_whatsapp_business_accounts') return res.end(JSON.stringify({ data: [{ id: 'W1', name: 'Conecta WA', currency: 'BRL' }] }));
+  if (u.pathname === '/v23.0/BM2/client_whatsapp_business_accounts') return res.end(JSON.stringify({ data: [] }));
+  if (u.pathname === '/v23.0/W1') {
+    const t = (d) => Math.floor(Date.parse(d + 'T03:00:00Z') / 1000);
+    return res.end(JSON.stringify({ id: 'W1', pricing_analytics: { data: [{ data_points: [{ start: t('2026-10-06'), end: t('2026-10-07'), pricing_category: 'MARKETING', volume: 500, cost: 31.25 }, { start: t('2026-10-07'), end: t('2026-10-08'), pricing_category: 'MARKETING', volume: 300, cost: 18.75 }] }] } }));
+  }
   if (u.pathname === '/v23.0/act_111/insights') {
-    if (u.searchParams.get('access_token') !== 'meta_teste') { res.statusCode = 400; return res.end(JSON.stringify({ error: { message: 'token inválido' } })); }
     return res.end(JSON.stringify({ data: [
       { date_start: '2026-10-06', campaign_id: 'M1', campaign_name: 'Meta WhatsApp', spend: '40.50', impressions: '5000', clicks: '120', actions: [{ action_type: 'onsite_conversion.messaging_conversation_started_7d', value: '20' }] },
       { date_start: '2026-10-07', campaign_id: 'M1', campaign_name: 'Meta WhatsApp', spend: '59.50', impressions: '6000', clicks: '140', actions: [{ action_type: 'onsite_conversion.messaging_conversation_started_7d', value: '30' }] },
@@ -96,7 +104,7 @@ const mcc = http.createServer((req, res) => {
   process.env.DATACRAZY_ESPACO_MS = '0';
   process.env.DATACRAZY_CRM_URL = process.env.MCC_BASE_URL;
   process.env.ADS_FEED_TOKEN = 'feedtoken1234567890';
-  process.env.META_GRAPH_URL = process.env.MCC_BASE_URL; process.env.META_TOKEN = 'meta_teste'; process.env.META_CONTAS = 'act_111';
+  process.env.META_GRAPH_URL = process.env.MCC_BASE_URL; process.env.META_TOKEN = 'meta_teste'; process.env.META_TOKEN_2 = 'meta_bm2'; process.env.META_CONTAS = 'act_111';
   process.env.ADS_FEED_USER = 'conectaaqui';
   process.env.ADS_FEED_PASS = 'senhaFeed';
   global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] }, produtos: [{ id: 'P0', name: 'Nio Fibra 600', id_sku: 'nf500', price: 110 }], negocio: { id: 'B1', code: 101, leadId: 'L1', status: 'in_process', products: [] }, tentativas: [], camposNegocio: [{ id: 'f1', name: 'Plano' }, { id: 'f2', name: 'Operadora escolhida' }, { id: 'f3', name: 'Vendedor', value: 'Ana' }] };
@@ -267,14 +275,15 @@ const mcc = http.createServer((req, res) => {
     // reenviar não duplica
     await fetchOrig(B + '/ads/gasto/google/feedtoken1234567890', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ versao: 2, linhas }) });
     const at = (await send('/admin/api/trafego/atualizar', 'POST', {}, H)).j;
-    assert.equal(at.meta.linhas, 2, JSON.stringify(at));
+    assert.equal(at.meta.linhas, 4, JSON.stringify(at));
+    assert.deepEqual(at.meta.wabas, ['Conecta WA']); assert.deepEqual(at.meta.contasLidas, ['Conecta Aqui (111)'], 'META_CONTAS filtra a conta de outra empresa');
     const rel = (await get('/admin/api/trafego?de=2026-10-01&ate=2026-10-31', H)).j;
-    assert.equal(rel.canais.google.gasto, 200); assert.equal(rel.canais.meta.gasto, 100); assert.equal(rel.canais.total.gasto, 300);
+    assert.equal(rel.canais.google.gasto, 200); assert.equal(rel.canais.meta.gasto, 100); assert.equal(rel.canais.disparos.gasto, 50); assert.equal(rel.canais.total.gasto, 350);
     assert.equal(rel.canais.meta.convPlataforma, 50);
     assert.equal(rel.canais.google.vendas, 1, 'negócio em Pendente de Instalação conta como venda do Google');
     assert.equal(rel.canais.google.cpv, 200);
     assert.equal(rel.funil.canais.google.passos[3], 1);
-    assert.equal(rel.campanhas.length, 2); assert.equal(rel.termosSemConversao[0].termo, 'claro boleto');
+    assert.equal(rel.campanhas.length, 3); assert.ok(rel.campanhas.some((c) => c.canal === 'disparos' && c.campanha === 'WhatsApp API · Conecta WA · Marketing' && c.gasto === 50 && c.impressoes === 800)); assert.equal(rel.termosSemConversao[0].termo, 'claro boleto');
     assert.equal(rel.serie.length, 31); assert.equal(rel.serie.find((x) => x.data === '2026-10-07').gasto.meta, 59.5);
     const ps = rel.pesquisa;
     assert.equal(ps.resumo.parcela, 44.4); assert.equal(ps.resumo.perdidaRanking, 42.8);
@@ -283,8 +292,10 @@ const mcc = http.createServer((req, res) => {
     assert.equal(ps.cidades[0].nome, 'Montes Claros/MG');
     assert.ok(!rel.alertas.some((a) => /versão nova do script/.test(a.texto)), 'script v2 não pede atualização');
     const pub = await fetchOrig(B + '/ads/relatorio/feedtoken1234567890.json?de=2026-10-01&ate=2026-10-31');
-    assert.equal((await pub.json()).canais.total.gasto, 300);
+    assert.equal((await pub.json()).canais.total.gasto, 350);
     assert.equal((await fetchOrig(B + '/ads/relatorio/tokenerrado123456789.json')).status, 404);
+    const tx = await (await fetchOrig(B + '/ads/relatorio/feedtoken1234567890.txt?de=2026-10-01&ate=2026-10-31')).text();
+    assert.ok(tx.includes('REDE DE PESQUISA') && tx.includes('"planos de internet"') && tx.includes('- google: gasto R$ 200,00'), tx.slice(0, 600));
     const cfg = (await send('/admin/api/trafego/config', 'PUT', { metaVendasMes: 40, metaCpv: '150' }, H)).j;
     assert.equal(cfg.metaVendasMes, 40); assert.equal(cfg.metaCpv, 150);
     const sc = await fetchOrig(B + '/admin/api/trafego/script-google', { headers: { cookie, 'x-requested-with': 'painel' } });

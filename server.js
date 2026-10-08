@@ -197,12 +197,13 @@ async function rotaPublica(req, res, url) {
     return json(res, 200, gasto.receberGoogle(await lerJson(req)));
   }
   // relatório em JSON para a IA estrategista (só números agregados, sem dados de clientes)
-  const rel = url.pathname.match(/^\/ads\/relatorio\/([A-Za-z0-9_-]{16,})\.json$/);
+  const rel = url.pathname.match(/^\/ads\/relatorio\/([A-Za-z0-9_-]{16,})\.(json|txt)$/);
   if (req.method === 'GET' && rel) {
     const tok = process.env.ADS_FEED_TOKEN || '';
     if (!tok || rel[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(rel[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
     const d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get(k) || '') ? url.searchParams.get(k) : null);
-    return json(res, 200, trafego.relatorio(d('de'), d('ate')));
+    const r = trafego.relatorio(d('de'), d('ate'));
+    return rel[2] === 'txt' ? enviar(res, 200, trafego.texto(r), 'text/plain; charset=utf-8') : json(res, 200, r);
   }
   const feed = url.pathname.match(/^\/ads\/conversoes\/([A-Za-z0-9_-]{16,})\.csv$/);
   if (req.method === 'GET' && feed) {
@@ -217,7 +218,7 @@ async function rotaPublica(req, res, url) {
     return enviar(res, 200, datacrazy.csvConversoes(), 'text/csv; charset=utf-8');
   }
   if (req.method === 'GET' && url.pathname === '/api/config') {
-    return json(res, 200, { whatsapp: (process.env.WHATSAPP_NUMBER || '').replace(/\D/g, ''), whatsappPlanos: (process.env.WHATSAPP_PLANOS || '5511955035657').replace(/\D/g, ''), telefone: process.env.TELEFONE || '', email: process.env.EMAIL_CONTATO || '', cnpj: process.env.CNPJ || '62.915.438/0001-57', adsConversao: process.env.ADS_CONVERSAO || '' });
+    return json(res, 200, { whatsapp: (process.env.WHATSAPP_NUMBER || '').replace(/\D/g, ''), whatsappPlanos: (process.env.WHATSAPP_PLANOS || '5511955032662').replace(/\D/g, ''), telefone: process.env.TELEFONE || '', email: process.env.EMAIL_CONTATO || '', cnpj: process.env.CNPJ || '62.915.438/0001-57', adsConversao: process.env.ADS_CONVERSAO || '' });
   }
   return false;
 }

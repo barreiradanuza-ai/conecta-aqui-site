@@ -295,7 +295,7 @@
       const p = planos.find((x) => x.id === b.dataset.plano);
       const preco = brl(p.precoPromo ?? p.preco);
       const msg = comRef(`Olá! Quero contratar o plano ${p.nome} (${p.operadora.nome}) de ${preco}/mês.\nEndereço: ${enderecoTexto()}`);
-      const numero = estado.config.whatsappPlanos || '5511955035657';
+      const numero = estado.config.whatsappPlanos || '5511955032662';
       medirLead('whatsapp_plano', { plano: p.nome, operadora: p.operadora.nome, valor: p.precoPromo ?? p.preco });
       window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
       const r = estado.resultado || {}; const d = enderecoDigitado();
