@@ -284,6 +284,10 @@ const mcc = http.createServer((req, res) => {
     assert.equal(f.classificar('Etapa 1 - Análise de Crédito', 'OPERAÇÃO').passo, 'credito');
     assert.equal(f.origemDe({ lead: { tags: [{ name: 'meta_ads' }] } }, 'Lead API', false), 'meta');
   });
+  await t('Clique e formulário sem anúncio (rastreio nulo) não dão erro', async () => {
+    assert.equal((await send('/api/clique', 'POST', { planoNome: 'Nio Fibra', operadora: 'Nio', rastreio: null })).s, 200);
+    assert.equal((await send('/api/contato', 'POST', { nome: 'Teste Sem Anuncio', telefone: '21988887777', rastreio: null })).s, 200);
+  });
   await t('Lê plano e endereço da mensagem do site', async () => {
     const { lerMensagemSite } = require('../lib/datacrazy');
     const d = lerMensagemSite('Olá! Quero contratar o plano Nio Fibra 600 Mega (Nio) de R$\u00a0110,00/mês.\nEndereço: Rua das Flores, 123 - Centro - Sete Lagoas/MG - CEP 35700-001\n(Ref: G-ABCDE)');
