@@ -196,6 +196,14 @@ async function rotaPublica(req, res, url) {
     if (!tok || envio[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(envio[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
     return json(res, 200, gasto.receberGoogle(await lerJson(req)));
   }
+  // relatório em JSON para a IA estrategista (só números agregados, sem dados de clientes)
+  const rel = url.pathname.match(/^\/ads\/relatorio\/([A-Za-z0-9_-]{16,})\.json$/);
+  if (req.method === 'GET' && rel) {
+    const tok = process.env.ADS_FEED_TOKEN || '';
+    if (!tok || rel[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(rel[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
+    const d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get(k) || '') ? url.searchParams.get(k) : null);
+    return json(res, 200, trafego.relatorio(d('de'), d('ate')));
+  }
   const feed = url.pathname.match(/^\/ads\/conversoes\/([A-Za-z0-9_-]{16,})\.csv$/);
   if (req.method === 'GET' && feed) {
     const tok = process.env.ADS_FEED_TOKEN || '';

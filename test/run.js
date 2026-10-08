@@ -259,10 +259,13 @@ const mcc = http.createServer((req, res) => {
       { data: '2026-10-06', campanhaId: '24330418004', campanha: 'CA | Pesquisa', status: 'ENABLED', gasto: 120.5, impressoes: 900, cliques: 40, conversoes: 3 },
       { data: '2026-10-07', campanhaId: '24330418004', campanha: 'CA | Pesquisa', status: 'ENABLED', gasto: 79.5, impressoes: 700, cliques: 30, conversoes: 2 },
     ];
-    const r = await fetchOrig(B + '/ads/gasto/google/feedtoken1234567890', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ conta: '1037631507', linhas, termos: [{ termo: 'claro boleto', campanha: 'CA', grupo: 'Op', gasto: 12, cliques: 3, conversoes: 0 }] }) });
+    const r = await fetchOrig(B + '/ads/gasto/google/feedtoken1234567890', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ versao: 2, conta: '1037631507', linhas, termos: [{ termo: 'claro boleto', campanha: 'CA', grupo: 'Op', gasto: 12, cliques: 3, conversoes: 0 }],
+      parcela: [{ data: '2026-10-06', campanhaId: '24330418004', impressoes: 900, parcela: 0.4, perdidaOrcamento: 0.15, perdidaRanking: 0.45, topo: 0.6, topoAbsoluto: 0.2 }, { data: '2026-10-07', campanhaId: '24330418004', impressoes: 700, parcela: 0.5, perdidaOrcamento: 0.1, perdidaRanking: 0.4, topo: 0.7, topoAbsoluto: 0.25 }],
+      palavras: [{ id: '1', palavra: 'internet fibra sete lagoas', tipo: 'PHRASE', qualidade: 8, campanha: 'CA', grupo: 'Fibra', gasto: 40, impressoes: 300, cliques: 20, conversoes: 3, parcela: 0.5, perdidaRanking: 0.35, topoAbsoluto: 0.3 }, { id: '2', palavra: 'planos de internet', tipo: 'BROAD', qualidade: 3, campanha: 'CA', grupo: 'Fibra', gasto: 90, impressoes: 900, cliques: 30, conversoes: 0, parcela: 0.2, perdidaRanking: 0.6, topoAbsoluto: 0.1 }],
+      cidades: [{ id: '1001773', nome: 'Sete Lagoas,State of Minas Gerais,Brazil', gasto: 60, impressoes: 400, cliques: 25, conversoes: 4 }, { id: '1031703', nome: 'Montes Claros,State of Minas Gerais,Brazil', gasto: 70, impressoes: 500, cliques: 20, conversoes: 0 }] }) });
     assert.equal((await r.json()).linhas, 2);
     // reenviar não duplica
-    await fetchOrig(B + '/ads/gasto/google/feedtoken1234567890', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ linhas }) });
+    await fetchOrig(B + '/ads/gasto/google/feedtoken1234567890', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ versao: 2, linhas }) });
     const at = (await send('/admin/api/trafego/atualizar', 'POST', {}, H)).j;
     assert.equal(at.meta.linhas, 2, JSON.stringify(at));
     const rel = (await get('/admin/api/trafego?de=2026-10-01&ate=2026-10-31', H)).j;
@@ -273,16 +276,28 @@ const mcc = http.createServer((req, res) => {
     assert.equal(rel.funil.canais.google.passos[3], 1);
     assert.equal(rel.campanhas.length, 2); assert.equal(rel.termosSemConversao[0].termo, 'claro boleto');
     assert.equal(rel.serie.length, 31); assert.equal(rel.serie.find((x) => x.data === '2026-10-07').gasto.meta, 59.5);
+    const ps = rel.pesquisa;
+    assert.equal(ps.resumo.parcela, 44.4); assert.equal(ps.resumo.perdidaRanking, 42.8);
+    const tipos = ps.recomendacoes.map((x) => x.tipo);
+    for (const t of ['Orçamento', 'Posição', 'Palavra vencedora', 'Palavra sem resultado', 'Índice de qualidade', 'Cidades']) assert.ok(tipos.includes(t), t + ' em ' + tipos.join(','));
+    assert.equal(ps.cidades[0].nome, 'Montes Claros/MG');
+    assert.ok(!rel.alertas.some((a) => /versão nova do script/.test(a.texto)), 'script v2 não pede atualização');
+    const pub = await fetchOrig(B + '/ads/relatorio/feedtoken1234567890.json?de=2026-10-01&ate=2026-10-31');
+    assert.equal((await pub.json()).canais.total.gasto, 300);
+    assert.equal((await fetchOrig(B + '/ads/relatorio/tokenerrado123456789.json')).status, 404);
     const cfg = (await send('/admin/api/trafego/config', 'PUT', { metaVendasMes: 40, metaCpv: '150' }, H)).j;
     assert.equal(cfg.metaVendasMes, 40); assert.equal(cfg.metaCpv, 150);
     const sc = await fetchOrig(B + '/admin/api/trafego/script-google', { headers: { cookie, 'x-requested-with': 'painel' } });
     const txt = await sc.text();
-    assert.ok(txt.includes('/ads/gasto/google/feedtoken1234567890') && txt.includes('function main()'), txt.slice(0, 200));
+    assert.ok(txt.includes('/ads/gasto/google/feedtoken1234567890') && txt.includes('function main()') && txt.includes('search_impression_share') && txt.includes('versao: 2'), txt.slice(0, 200));
     const f = require('../lib/funil');
     assert.deepEqual(f.classificar('Sem viabilidade', 'CANCELAMENTOS'), { passo: null, perdido: 'Sem viabilidade' });
     assert.equal(f.classificar('Instalado', 'OPERAÇÃO').passo, 'instalado');
     assert.equal(f.classificar('Etapa 1 - Análise de Crédito', 'OPERAÇÃO').passo, 'credito');
-    assert.equal(f.origemDe({ lead: { tags: [{ name: 'meta_ads' }] } }, 'Lead API', false), 'meta');
+    assert.equal(f.origemDe({ lead: { tags: [{ name: 'meta_ads' }, { name: 'api_5667' }] } }, 'Lead API', false), 'meta');
+    assert.equal(f.origemDe({ lead: { tags: [{ name: 'api_5667' }] } }, 'Plano Claro', false), 'disparos');
+    assert.equal(f.origemDe({ lead: { tags: [] } }, 'Lead API', false), 'disparos');
+    assert.equal(f.origemDe({ lead: { tags: [] } }, 'DISPARO 2', false), 'disparos');
   });
   await t('Clique e formulário sem anúncio (rastreio nulo) não dão erro', async () => {
     assert.equal((await send('/api/clique', 'POST', { planoNome: 'Nio Fibra', operadora: 'Nio', rastreio: null })).s, 200);

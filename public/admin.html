@@ -66,7 +66,7 @@ dialog::backdrop{background:rgba(7,27,69,.55)}
 .dica{font-size:.85rem;color:var(--muted)}
 pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:auto;font-size:.85rem}
 /* ---------- Tráfego ---------- */
-.tf{--g:#2a78d6;--m:#eb6834;--o:#1baf7a;--grade:#e6edf3;--bom:#0f7b3f;--ruim:#c62828}
+.tf{--g:#2a78d6;--m:#eb6834;--d:#1baf7a;--o:#9aa5b4;--grade:#e6edf3;--bom:#0f7b3f;--ruim:#c62828}
 .seg{display:inline-flex;background:#fff;border:1.5px solid var(--borda);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
 .seg button{border:0;background:transparent;font:600 .85rem Inter,sans-serif;color:var(--muted);padding:.45em .8em;border-radius:7px;cursor:pointer}
 .seg button.ativo{background:var(--marinho);color:#fff}
@@ -94,6 +94,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
 .progresso span{display:block;height:100%;background:var(--g);border-radius:5px}
 .conex{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 .conex>div{border:1px solid var(--borda);border-radius:12px;padding:12px 14px}
+.rec{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #edf2f7;font-size:.92rem}.rec .pill{flex:none;align-self:flex-start}.rec.p1 .pill{background:#fdecec;color:var(--ruim)}.rec.p2 .pill{background:#fff6db;color:#7a5a00}
 .ok-txt{color:var(--bom);font-weight:700}.ruim-txt{color:var(--ruim);font-weight:700}
 @media (max-width:800px){.tf-graf{grid-template-columns:1fr}}
 @media (max-width:800px){.ops-linha{grid-template-columns:1fr 1fr}.abas{overflow-x:auto}}
@@ -137,16 +138,27 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
           <button data-p="hoje">Hoje</button><button data-p="ontem">Ontem</button><button data-p="7" class="ativo">7 dias</button><button data-p="30">30 dias</button><button data-p="mes">Este mês</button><button data-p="mesant">Mês passado</button>
         </div>
         <span class="tf-datas"><input type="date" id="tfDe"> até <input type="date" id="tfAte"></span>
-        <div class="seg" id="tfCanal"><button data-c="total" class="ativo">Todos</button><button data-c="google">Google</button><button data-c="meta">Meta</button></div>
+        <div class="seg" id="tfCanal"><button data-c="total" class="ativo">Todos</button><button data-c="google">Google</button><button data-c="meta">Meta</button><button data-c="disparos">Disparos</button></div>
         <span class="esp"></span>
         <button class="btn claro" id="tfAtualizar" type="button">Atualizar agora</button>
       </div>
       <div id="tfAlertas"></div>
       <div class="tf-kpis" id="tfKpis"></div>
       <div class="card" id="tfMeta"></div>
+      <div class="card" id="tfPesquisa">
+        <div class="barra" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">Rede de pesquisa (Google): domínio do leilão</h3><span class="dica" id="tfPesqEm"></span></div>
+        <p class="dica">Parcela de impressões = de cada 100 buscas em que você poderia aparecer, em quantas apareceu. O resto foi perdido por falta de verba (orçamento) ou por posição (lance e qualidade).</p>
+        <div class="tf-kpis" id="tfPesqKpis"></div>
+        <h3>O que fazer agora</h3>
+        <div id="tfRecs"></div>
+        <h3 style="margin-top:18px">Palavras-chave (30 dias)</h3>
+        <div class="tab-wrap"><table id="tfPalavras"></table></div>
+        <h3 style="margin-top:18px">Cidades (30 dias)</h3>
+        <div class="tab-wrap"><table id="tfCidades"></table></div>
+      </div>
       <div class="tf-graf">
         <div class="card"><h3>Gasto por dia</h3><div class="legenda"><span><i style="background:var(--g)"></i>Google</span><span><i style="background:var(--m)"></i>Meta</span></div><div class="graf-wrap" id="grafGasto"></div></div>
-        <div class="card"><h3>Vendas por dia</h3><div class="legenda"><span><i style="background:var(--g)"></i>Google</span><span><i style="background:var(--m)"></i>Meta</span><span><i style="background:var(--o)"></i>Outros</span></div><div class="graf-wrap" id="grafVendas"></div></div>
+        <div class="card"><h3>Vendas por dia</h3><div class="legenda"><span><i style="background:var(--g)"></i>Google</span><span><i style="background:var(--m)"></i>Meta</span><span><i style="background:var(--d)"></i>Disparos</span><span><i style="background:var(--o)"></i>Outros</span></div><div class="graf-wrap" id="grafVendas"></div></div>
       </div>
       <div class="card"><h3>Canais lado a lado</h3><p class="dica" id="tfPeriodoTxt"></p><div class="tab-wrap"><table id="tfCanais"></table></div></div>
       <div class="card"><h3>Funil</h3><p class="dica">Leads que chegaram no período e até onde foram. "Sem cobertura" são os perdidos na etapa Sem viabilidade.</p><div class="tab-wrap"><table id="tfFunil"></table></div></div>
@@ -158,6 +170,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
           <label>Receita média por venda (R$)<input name="receitaPorVenda" type="number" step="0.01" min="0"></label>
           <label>Meta de vendas no mês<input name="metaVendasMes" type="number" step="1" min="0"></label>
           <label>Custo por venda máximo (R$)<input name="metaCpv" type="number" step="0.01" min="0"></label>
+          <label>Custo por lead máximo (R$)<input name="metaCpl" type="number" step="0.01" min="0"></label>
           <label>Orçamento de anúncios no mês (R$)<input name="orcamentoMes" type="number" step="0.01" min="0"></label>
           <div style="align-self:end"><button class="btn prim">Salvar metas</button></div>
         </form>
@@ -366,8 +379,8 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   // ---------- tráfego ----------
   const inteiro = (n) => (n == null ? '—' : Number(n).toLocaleString('pt-BR'));
   const pct = (n) => (n == null ? '—' : Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%');
-  const NOME_CANAL = { google: 'Google', meta: 'Meta', outros: 'Outros / orgânico', total: 'Total' };
-  const COR = { google: 'var(--g)', meta: 'var(--m)', outros: 'var(--o)' };
+  const NOME_CANAL = { google: 'Google', meta: 'Meta', disparos: 'Disparos (API oficial)', outros: 'Outros', total: 'Total' };
+  const COR = { google: 'var(--g)', meta: 'var(--m)', disparos: 'var(--d)', outros: 'var(--o)' };
   const tf = { periodo: '7', canal: 'total', de: null, ate: null, dados: null };
   const diaBR = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
   const mais = (d, n) => new Date(Date.parse(d + 'T12:00:00Z') + n * 864e5).toISOString().slice(0, 10);
@@ -429,19 +442,31 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
         <div><b>${inteiro(m.vendas)}</b> vendas${m.metaVendas ? ` de ${inteiro(m.metaVendas)} (meta)` : ''} · previsão ${inteiro(m.previsaoVendas)}${m.metaVendas ? `<div class="progresso"><span style="width:${pv}%"></span></div><div class="dica">${pct(pv)} da meta</div>` : '<div class="dica">Defina a meta de vendas abaixo.</div>'}</div>
         <div><b>${brl(m.gasto)}</b> gastos${m.orcamento ? ` de ${brl(m.orcamento)}` : ''} · previsão ${brl(m.previsaoGasto)}${m.orcamento ? `<div class="progresso"><span style="width:${Math.min(100, (m.gasto / m.orcamento) * 100)}%;background:${m.previsaoGasto > m.orcamento ? 'var(--ruim)' : 'var(--g)'}"></span></div><div class="dica">${m.previsaoGasto > m.orcamento ? '⚠️ no ritmo atual passa do orçamento' : 'dentro do orçamento'}</div>` : '<div class="dica">Defina o orçamento do mês abaixo.</div>'}</div>
       </div>`;
+    // rede de pesquisa
+    const ps = d.pesquisa; const r1 = (x) => (x == null ? '—' : pct(x));
+    $('#tfPesqEm').textContent = ps.palavrasEm ? 'palavras e cidades: ' + new Date(ps.palavrasEm).toLocaleString('pt-BR') : '';
+    $('#tfPesqKpis').innerHTML = ps.resumo ? [
+      ['Parcela de impressões', r1(ps.resumo.parcela), 'das buscas em que podia aparecer'],
+      ['Perdida por orçamento', r1(ps.resumo.perdidaOrcamento), 'falta de verba'],
+      ['Perdida por posição', r1(ps.resumo.perdidaRanking), 'lance ou qualidade'],
+      ['1º lugar (topo absoluto)', r1(ps.resumo.topoAbsoluto), `topo da página: ${r1(ps.resumo.topo)}`],
+    ].map(([a, b, c]) => `<div class="kpi"><div class="rot">${a}</div><div class="val">${b}</div><div class="sub">${c}</div></div>`).join('') : '<p class="dica">Aguardando o script do Google Ads versão 2 (veja o aviso no topo).</p>';
+    $('#tfRecs').innerHTML = ps.recomendacoes.length ? ps.recomendacoes.map((x) => `<div class="rec p${x.prioridade}"><span class="pill">${x.prioridade === 1 ? 'Prioridade' : x.prioridade === 2 ? 'Importante' : 'Oportunidade'} · ${esc(x.tipo)}</span><span>${esc(x.texto)}</span></div>`).join('') : '<p class="dica">Nenhuma recomendação no momento. Elas aparecem conforme os dados de leilão, palavras e cidades chegam.</p>';
+    $('#tfPalavras').innerHTML = ps.palavras.length ? `<thead><tr><th>Palavra</th><th>Grupo</th><th class="num">Qualidade</th><th class="num">Gasto</th><th class="num">Cliques</th><th class="num">CTR</th><th class="num">Leads</th><th class="num">Custo/lead</th><th class="num">Parcela</th><th class="num">Perdida posição</th><th class="num">1º lugar</th></tr></thead><tbody>${ps.palavras.slice(0, 40).map((k) => `<tr><td>${esc(k.palavra)} <span class="pill cinza">${esc({ EXACT: 'exata', PHRASE: 'frase', BROAD: 'ampla' }[k.tipo] || k.tipo)}</span></td><td class="dica">${esc(k.grupo)}</td><td class="num">${k.qualidade ? k.qualidade + '/10' : '—'}</td><td class="num">${brl(k.gasto)}</td><td class="num">${inteiro(k.cliques)}</td><td class="num">${pct(k.ctr)}</td><td class="num">${inteiro(Math.round(k.conversoes))}</td><td class="num">${brl(k.cpa)}</td><td class="num">${r1(k.parcela)}</td><td class="num">${r1(k.perdidaRanking)}</td><td class="num">${r1(k.topoAbsoluto)}</td></tr>`).join('')}</tbody>` : '<tbody><tr><td class="dica">Sem dados de palavras ainda.</td></tr></tbody>';
+    $('#tfCidades').innerHTML = ps.cidades.length ? `<thead><tr><th>Cidade</th><th class="num">Gasto</th><th class="num">Impressões</th><th class="num">Cliques</th><th class="num">Leads</th><th class="num">Custo/lead</th></tr></thead><tbody>${ps.cidades.slice(0, 40).map((c) => `<tr><td>${esc(c.nome)}</td><td class="num">${brl(c.gasto)}</td><td class="num">${inteiro(c.impressoes)}</td><td class="num">${inteiro(c.cliques)}</td><td class="num">${inteiro(Math.round(c.conversoes))}</td><td class="num">${brl(c.cpa)}</td></tr>`).join('')}</tbody>` : '<tbody><tr><td class="dica">Sem dados de cidades ainda.</td></tr></tbody>';
     grafico('#grafGasto', d.serie, ['google', 'meta'], (s) => s.gasto, brl);
-    grafico('#grafVendas', d.serie, ['google', 'meta', 'outros'], (s) => s.vendas, inteiro);
+    grafico('#grafVendas', d.serie, ['google', 'meta', 'disparos', 'outros'], (s) => s.vendas, inteiro);
     $('#tfPeriodoTxt').textContent = `${fmtData(d.de)} a ${fmtData(d.ate)} (${d.dias} dias), comparado com ${fmtData(d.anteriorDe)} a ${fmtData(d.anteriorAte)}.`;
-    const lin = ['google', 'meta', 'outros', 'total'].map((k) => { const x = d.canais[k]; return `<tr${k === 'total' ? ' style="font-weight:700"' : ''}><td>${k !== 'total' ? `<span class="bola" style="background:${COR[k]}"></span>` : ''}${NOME_CANAL[k]}</td><td class="num">${brl(x.gasto)}</td><td class="num">${inteiro(x.leads)}</td><td class="num">${brl(x.cpl)}</td><td class="num">${inteiro(x.vendas)}</td><td class="num">${brl(x.cpv)}</td><td class="num">${pct(x.taxaVenda)}</td><td class="num">${inteiro(x.instalados)}</td><td class="num">${brl(x.cpi)}</td><td class="num">${inteiro(x.semCobertura)}</td><td class="num">${x.roas == null ? '—' : x.roas.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + 'x'}</td></tr>`; }).join('');
+    const lin = ['google', 'meta', 'disparos', 'outros', 'total'].map((k) => { const x = d.canais[k]; return `<tr${k === 'total' ? ' style="font-weight:700"' : ''}><td>${k !== 'total' ? `<span class="bola" style="background:${COR[k]}"></span>` : ''}${NOME_CANAL[k]}</td><td class="num">${brl(x.gasto)}</td><td class="num">${inteiro(x.leads)}</td><td class="num">${brl(x.cpl)}</td><td class="num">${inteiro(x.vendas)}</td><td class="num">${brl(x.cpv)}</td><td class="num">${pct(x.taxaVenda)}</td><td class="num">${inteiro(x.instalados)}</td><td class="num">${brl(x.cpi)}</td><td class="num">${inteiro(x.semCobertura)}</td><td class="num">${x.roas == null ? '—' : x.roas.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + 'x'}</td></tr>`; }).join('');
     $('#tfCanais').innerHTML = `<thead><tr><th>Canal</th><th class="num">Gasto</th><th class="num">Leads</th><th class="num">Custo/lead</th><th class="num">Vendas</th><th class="num">Custo/venda</th><th class="num">Lead→venda</th><th class="num">Instalados</th><th class="num">Custo/instal.</th><th class="num">Sem cobertura</th><th class="num">ROAS</th></tr></thead><tbody>${lin}</tbody>`;
-    const f = d.funil; const cols = ['google', 'meta', 'outros', 'total'];
+    const f = d.funil; const cols = ['google', 'meta', 'disparos', 'outros', 'total'];
     const linF = f.passos.map((rot, i) => `<tr><td>${esc(rot)}</td>${cols.map((k) => { const base = f.canais[k].passos[0]; const v = f.canais[k].passos[i]; const p = base ? (v / base) * 100 : 0; return `<td class="num">${inteiro(v)} <small class="dica">${i ? pct(p) : ''}</small><div class="barrinha"><span style="width:${p}%;background:${COR[k] || 'var(--marinho)'}"></span></div></td>`; }).join('')}</tr>`).join('');
     const linP = `<tr><td>Perdidos</td>${cols.map((k) => `<td class="num">${inteiro(f.canais[k].perdidos)}</td>`).join('')}</tr><tr><td>Sem cobertura</td>${cols.map((k) => { const b = f.canais[k].passos[0]; return `<td class="num">${inteiro(f.canais[k].semCobertura)} <small class="dica">${b ? pct((f.canais[k].semCobertura / b) * 100) : ''}</small></td>`; }).join('')}</tr>`;
     $('#tfFunil').innerHTML = `<thead><tr><th>Etapa</th>${cols.map((k) => `<th class="num">${NOME_CANAL[k]}</th>`).join('')}</tr></thead><tbody>${linF}${linP}</tbody>`;
     const camps = d.campanhas.filter((x) => tf.canal === 'total' || x.canal === tf.canal);
     $('#tfCamp').innerHTML = camps.length ? `<thead><tr><th>Campanha</th><th class="num">Gasto</th><th class="num">Impressões</th><th class="num">Cliques</th><th class="num">CTR</th><th class="num">CPC</th><th class="num">Conv. plataforma</th><th class="num">Custo/conv.</th><th class="num">Leads CRM</th><th class="num">Vendas CRM</th><th class="num">Custo/venda</th></tr></thead><tbody>${camps.map((x) => `<tr><td><span class="bola" style="background:${COR[x.canal]}"></span>${esc(x.campanha)} <span class="pill cinza">${esc(x.status || '')}</span></td><td class="num">${brl(x.gasto)}</td><td class="num">${inteiro(x.impressoes)}</td><td class="num">${inteiro(x.cliques)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${brl(x.cpc)}</td><td class="num">${x.conversoes.toLocaleString('pt-BR')}</td><td class="num">${brl(x.custoConv)}</td><td class="num">${x.leadsCrm == null ? '—' : inteiro(x.leadsCrm)}</td><td class="num">${x.vendasCrm == null ? '—' : inteiro(x.vendasCrm)}</td><td class="num">${brl(x.cpvCrm)}</td></tr>`).join('')}</tbody>` : '<tbody><tr><td class="dica">Sem dados de campanha no período. Instale o script do Google Ads e conecte o Meta (veja "Metas e conexões").</td></tr></tbody>';
     $('#tfTermos').innerHTML = d.termosSemConversao.length ? `<thead><tr><th>Termo pesquisado</th><th>Campanha / grupo</th><th class="num">Cliques</th><th class="num">Gasto</th></tr></thead><tbody>${d.termosSemConversao.map((t) => `<tr><td>${esc(t.termo)}</td><td class="dica">${esc(t.campanha)} · ${esc(t.grupo)}</td><td class="num">${inteiro(t.cliques)}</td><td class="num">${brl(t.gasto)}</td></tr>`).join('')}</tbody>` : '<tbody><tr><td class="dica">Nenhum termo com gasto sem conversão (ou o script do Google Ads ainda não enviou dados).</td></tr></tbody>';
-    const fc = $('#tfConfig'); for (const k of ['receitaPorVenda', 'metaVendasMes', 'metaCpv', 'orcamentoMes']) if (document.activeElement !== fc[k]) fc[k].value = d.config[k] || '';
+    const fc = $('#tfConfig'); for (const k of ['receitaPorVenda', 'metaVendasMes', 'metaCpv', 'metaCpl', 'orcamentoMes']) if (document.activeElement !== fc[k]) fc[k].value = d.config[k] || '';
     const cx = d.conexoes; const quando = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : 'nunca');
     $('#tfConex').innerHTML = `
       <div><b>Google Ads</b><div class="${cx.google.ultima ? 'ok-txt' : 'ruim-txt'}">${cx.google.ultima ? '● recebendo' : '● não instalado'}</div><div class="dica">Último envio: ${quando(cx.google.ultima)}</div><button class="btn claro" type="button" id="verScript" style="margin-top:8px">Ver script do Google Ads</button></div>
