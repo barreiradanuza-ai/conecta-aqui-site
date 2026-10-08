@@ -43,17 +43,25 @@ const mcc = http.createServer((req, res) => {
     const items = (LISTAS[m[1]] || []).filter((v) => v.includes(q)).map((v) => ({ id: v, value: v }));
     return res.end(JSON.stringify({ items, total: items.length, page: 1, pageSize: 100 }));
   }
+  // rota interna da tela do DataCrazy (aceita o token da API): campos do negócio
+  if (u.pathname.startsWith('/api/crm/additional-fields/business/B1')) {
+    if (req.headers.authorization !== 'Bearer dc_teste') { res.statusCode = 401; return res.end('{}'); }
+    const DC = global.DC;
+    if (req.method === 'GET') return res.end(JSON.stringify({ data: DC.camposNegocio.map((c) => ({ id: 'v' + c.id, additionalField: { id: c.id, name: c.name, type: 'string' }, value: c.value ?? null })) }));
+    const id = u.pathname.split('/').pop();
+    let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { DC.camposNegocio.find((c) => c.id === id).value = JSON.parse(b).value; res.end('{}'); }); return;
+  }
   if (u.pathname.startsWith('/api/v1/')) {
     if (req.headers.authorization !== 'Bearer dc_teste') { res.statusCode = 401; return res.end('{}'); }
     const DC = global.DC;
     // negócio: a API pública não tem /additional-fields/business (404); o negócio traz additionalFields.
     // O fake só aceita { additionalFields: [{ additionalFieldId, value }] } (testa a troca de formato).
-    const negJson = () => ({ ...DC.negocio, additionalFields: DC.camposNegocio.map((c) => ({ id: 'v' + c.id, additionalField: { id: c.id, name: c.name, type: 'string' }, value: c.value ?? null })) });
+    const negJson = () => ({ ...DC.negocio, additionalFields: [] }); // a API pública devolve os campos vazios
     if (u.pathname === '/api/v1/businesses/B1' && req.method === 'GET') return res.end(JSON.stringify(negJson()));
     if (u.pathname === '/api/v1/products' && req.method === 'GET') return res.end(JSON.stringify({ count: DC.produtos.length, data: DC.produtos }));
     if (u.pathname === '/api/v1/products' && req.method === 'POST') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const p = { id: 'P' + (DC.produtos.length + 1), ...JSON.parse(b) }; DC.produtos.push(p); res.end(JSON.stringify(p)); }); return; }
     if (u.pathname === '/api/v1/leads/L1/businesses') return res.end(JSON.stringify({ data: [DC.negocio] }));
-    if (u.pathname === '/api/v1/businesses/B1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const j = JSON.parse(b); DC.tentativas.push(Object.keys(j).join(',')); for (const f of j.additionalFields || []) if (f.additionalFieldId) DC.camposNegocio.find((c) => c.id === f.additionalFieldId).value = f.value; if (j.products && j.products[0].product) DC.negocio.products = j.products.map((x) => ({ id: 'bp1', product: { id: x.product.id, name: x.product.name }, quantity: x.quantity, price: x.price, total: x.total })); res.end(JSON.stringify(negJson())); }); return; }
+    if (u.pathname === '/api/v1/businesses/B1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const j = JSON.parse(b); DC.tentativas.push(Object.keys(j).join(',')); if (j.products && j.products[0].product) DC.negocio.products = j.products.map((x) => ({ id: 'bp1', product: { id: x.product.id, name: x.product.name }, quantity: x.quantity, price: x.price, total: x.total })); res.end(JSON.stringify(negJson())); }); return; }
     if (u.pathname === '/api/v1/pipelines') return res.end(JSON.stringify({ data: [{ id: 'p1', name: 'Vendas' }] }));
     if (u.pathname === '/api/v1/pipelines/p1/stages') return res.end(JSON.stringify({ data: [{ id: 's1', name: 'Novo' }, { id: 's9', name: 'Pendente de Instalacao' }] }));
     if (u.pathname === '/api/v1/tags' && req.method === 'GET') return res.end(JSON.stringify({ data: DC.tags }));
@@ -223,7 +231,8 @@ const mcc = http.createServer((req, res) => {
     const r = (await send('/admin/api/datacrazy/testar-negocio', 'POST', { nome: 'TESTE API' }, H)).j;
     assert.ok(!r.erro, r.erro);
     assert.equal(r.camposGravados, 2); assert.equal(r.produtoColocado, true); assert.equal(r.produto, 'Nio Fibra 600');
-    assert.deepEqual(r.tentativas.filter((x) => x.ok).map((x) => x.etapa + ':' + x.formato), ['campos:patch-additionalFieldId', 'produto:patch-product']);
+    assert.deepEqual(r.tentativas.map((x) => [x.etapa, x.ok]), [['campo', true], ['campo', true], ['produto', true]]);
+    assert.deepEqual(r.camposAgora, { Plano: 'Nio Fibra 600 Mega', 'Operadora escolhida': 'Nio' });
     assert.equal(global.DC.camposNegocio[0].value, 'Nio Fibra 600 Mega');
   });
   await t('Lê plano e endereço da mensagem do site', async () => {
