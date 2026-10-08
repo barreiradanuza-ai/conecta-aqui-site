@@ -342,6 +342,7 @@ async function rotaAdmin(req, res, url) {
   }
   if (p === '/datacrazy/sincronizar' && req.method === 'POST') return json(res, 200, await datacrazy.sincronizar(rastreio));
   if (p === '/datacrazy/diagnostico' && req.method === 'GET') return json(res, 200, await datacrazy.diagnostico());
+  if (p === '/datacrazy/testar-negocio' && req.method === 'POST') { const b = await lerJson(req); return json(res, 200, await datacrazy.testarNegocio(String((b && b.nome) || 'TESTE API').slice(0, 80))); }
   // --- testar cobertura ---
   if (p === '/testar' && req.method === 'GET') {
     cobertura.limparCache();

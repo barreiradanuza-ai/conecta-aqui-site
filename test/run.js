@@ -46,21 +46,21 @@ const mcc = http.createServer((req, res) => {
   if (u.pathname.startsWith('/api/v1/')) {
     if (req.headers.authorization !== 'Bearer dc_teste') { res.statusCode = 401; return res.end('{}'); }
     const DC = global.DC;
-    // campos do negócio e produtos: mesmo formato visto na tela do DataCrazy
-    if (u.pathname === '/api/v1/additional-fields/business/B1' && req.method === 'GET') return res.end(JSON.stringify({ data: DC.camposNegocio.map((c) => ({ id: 'v' + c.id, additionalField: { id: c.id, name: c.name, type: 'string', entity: 'business', options: null }, value: c.value ?? null })) }));
-    const pc = u.pathname.match(/^\/api\/v1\/additional-fields\/business\/B1\/(\w+)$/);
-    if (pc && req.method === 'PUT') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { DC.camposNegocio.find((c) => c.id === pc[1]).value = JSON.parse(b).value; res.end('{}'); }); return; }
+    // negócio: a API pública não tem /additional-fields/business (404); o negócio traz additionalFields.
+    // O fake só aceita { additionalFields: [{ additionalFieldId, value }] } (testa a troca de formato).
+    const negJson = () => ({ ...DC.negocio, additionalFields: DC.camposNegocio.map((c) => ({ id: 'v' + c.id, additionalField: { id: c.id, name: c.name, type: 'string' }, value: c.value ?? null })) });
+    if (u.pathname === '/api/v1/businesses/B1' && req.method === 'GET') return res.end(JSON.stringify(negJson()));
     if (u.pathname === '/api/v1/products' && req.method === 'GET') return res.end(JSON.stringify({ count: DC.produtos.length, data: DC.produtos }));
     if (u.pathname === '/api/v1/products' && req.method === 'POST') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const p = { id: 'P' + (DC.produtos.length + 1), ...JSON.parse(b) }; DC.produtos.push(p); res.end(JSON.stringify(p)); }); return; }
     if (u.pathname === '/api/v1/leads/L1/businesses') return res.end(JSON.stringify({ data: [DC.negocio] }));
-    if (u.pathname === '/api/v1/businesses/B1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const j = JSON.parse(b); if (j.products) DC.negocio.products = j.products.map((x) => ({ id: 'bp1', product: { id: x.product.id, name: x.product.name }, quantity: x.quantity, price: x.price, total: x.total })); res.end(JSON.stringify(DC.negocio)); }); return; }
+    if (u.pathname === '/api/v1/businesses/B1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const j = JSON.parse(b); DC.tentativas.push(Object.keys(j).join(',')); for (const f of j.additionalFields || []) if (f.additionalFieldId) DC.camposNegocio.find((c) => c.id === f.additionalFieldId).value = f.value; if (j.products && j.products[0].product) DC.negocio.products = j.products.map((x) => ({ id: 'bp1', product: { id: x.product.id, name: x.product.name }, quantity: x.quantity, price: x.price, total: x.total })); res.end(JSON.stringify(negJson())); }); return; }
     if (u.pathname === '/api/v1/pipelines') return res.end(JSON.stringify({ data: [{ id: 'p1', name: 'Vendas' }] }));
     if (u.pathname === '/api/v1/pipelines/p1/stages') return res.end(JSON.stringify({ data: [{ id: 's1', name: 'Novo' }, { id: 's9', name: 'Pendente de Instalacao' }] }));
     if (u.pathname === '/api/v1/tags' && req.method === 'GET') return res.end(JSON.stringify({ data: DC.tags }));
     if (u.pathname === '/api/v1/tags' && req.method === 'POST') { const t = { id: 't' + (DC.tags.length + 1), name: 'googleads' }; DC.tags.push(t); return res.end(JSON.stringify(t)); }
     if (u.pathname === '/api/v1/conversations') return res.end(JSON.stringify({ data: !Number(u.searchParams.get('skip')) ? [{ id: 'c1', lastReceivedMessageDate: new Date().toISOString(), contact: { name: 'Ana', phoneNumber: '5521999991234' } }] : [] }));
     if (u.pathname === '/api/v1/conversations/c1/messages') return res.end(JSON.stringify({ data: [{ body: 'Olá! Quero contratar o plano X\n(Ref: G-ABCDE)', received: true }] }));
-    if (u.pathname === '/api/v1/leads' && req.method === 'GET') return res.end(JSON.stringify({ data: (u.searchParams.get('search') || '').endsWith('999991234') ? [DC.lead] : [] }));
+    if (u.pathname === '/api/v1/leads' && req.method === 'GET') return res.end(JSON.stringify({ data: u.searchParams.get('search') === 'TESTE API' ? [{ id: 'L1', name: 'TESTE API' }] : (u.searchParams.get('search') || '').endsWith('999991234') ? [DC.lead] : [] }));
     if (u.pathname === '/api/v1/leads/L1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const j = JSON.parse(b); if (j.tags) DC.lead.tags = j.tags; if (j.address) DC.lead.address = j.address; if (j.additionalFields) DC.lead.extras = j.additionalFields; res.end('{}'); }); return; }
     if (u.pathname === '/api/v1/businesses') return res.end(JSON.stringify({ data: u.searchParams.get('skip') === '0' ? [{ id: 'B1', code: 101, leadId: 'L1', stageId: 's9', lastMovedAt: '2026-10-07T15:30:00.000Z', total: 120 }] : [] }));
     res.statusCode = 404; return res.end('{}');
@@ -79,10 +79,11 @@ const mcc = http.createServer((req, res) => {
   process.env.DATACRAZY_URL = process.env.MCC_BASE_URL;
   process.env.DATACRAZY_TOKEN = 'dc_teste';
   process.env.DATACRAZY_ESPACO_MS = '0';
+  process.env.DATACRAZY_CRM_URL = process.env.MCC_BASE_URL;
   process.env.ADS_FEED_TOKEN = 'feedtoken1234567890';
   process.env.ADS_FEED_USER = 'conectaaqui';
   process.env.ADS_FEED_PASS = 'senhaFeed';
-  global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] }, produtos: [{ id: 'P0', name: 'Nio Fibra 600', id_sku: 'nf500', price: 110 }], negocio: { id: 'B1', code: 101, leadId: 'L1', status: 'in_process', products: [] }, camposNegocio: [{ id: 'f1', name: 'Plano' }, { id: 'f2', name: 'Operadora escolhida' }, { id: 'f3', name: 'Vendedor', value: 'Ana' }] };
+  global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] }, produtos: [{ id: 'P0', name: 'Nio Fibra 600', id_sku: 'nf500', price: 110 }], negocio: { id: 'B1', code: 101, leadId: 'L1', status: 'in_process', products: [] }, tentativas: [], camposNegocio: [{ id: 'f1', name: 'Plano' }, { id: 'f2', name: 'Operadora escolhida' }, { id: 'f3', name: 'Vendedor', value: 'Ana' }] };
   process.env.MCC_PASSWORD = 'segredo';
   process.env.ADMIN_PASSWORD = 'admin123';
   process.env.WHATSAPP_NUMBER = '5521900000000';
@@ -216,6 +217,14 @@ const mcc = http.createServer((req, res) => {
     assert.equal((await get('/admin/api/datacrazy', H)).j.conversoes.length, 1);
     const diag = (await get('/admin/api/datacrazy/diagnostico', H)).j;
     assert.ok(diag.etapaEncontrada && diag.tagExiste && diag.temTelefoneNaConversa, JSON.stringify(diag));
+  });
+  await t('Botão de teste grava campos e produto no negócio TESTE API', async () => {
+    global.DC.camposNegocio.forEach((c) => { if (c.id !== 'f3') c.value = null; }); global.DC.negocio.products = [];
+    const r = (await send('/admin/api/datacrazy/testar-negocio', 'POST', { nome: 'TESTE API' }, H)).j;
+    assert.ok(!r.erro, r.erro);
+    assert.equal(r.camposGravados, 2); assert.equal(r.produtoColocado, true); assert.equal(r.produto, 'Nio Fibra 600');
+    assert.deepEqual(r.tentativas.filter((x) => x.ok).map((x) => x.etapa + ':' + x.formato), ['campos:patch-additionalFieldId', 'produto:patch-product']);
+    assert.equal(global.DC.camposNegocio[0].value, 'Nio Fibra 600 Mega');
   });
   await t('Lê plano e endereço da mensagem do site', async () => {
     const { lerMensagemSite } = require('../lib/datacrazy');
