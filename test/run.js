@@ -302,6 +302,11 @@ const mcc = http.createServer((req, res) => {
     const txt = await sc.text();
     assert.ok(txt.includes('/ads/gasto/google/feedtoken1234567890') && txt.includes('function main()') && txt.includes('search_impression_share') && txt.includes('versao: 2'), txt.slice(0, 200));
     const f = require('../lib/funil');
+    assert.equal(f.respondeu({ origem: 'disparos', passo: 0, etapa: 'Lead API', passos: {} }), false);
+    assert.equal(f.respondeu({ origem: 'disparos', passo: 0, etapa: 'ATENDIMENTO IA', passos: {} }), true);
+    assert.equal(f.respondeu({ origem: 'disparos', passo: 0, etapa: 'Sem interação template', perdido: 'Sem interação template', passos: {} }), false);
+    assert.equal(f.respondeu({ origem: 'disparos', passo: 1, etapa: 'Plano Claro', passos: {} }), true);
+    assert.equal(f.respondeu({ origem: 'meta', passo: 0, etapa: 'Lead Meta', passos: {} }), true);
     assert.deepEqual(f.classificar('Sem viabilidade', 'CANCELAMENTOS'), { passo: null, perdido: 'Sem viabilidade' });
     assert.equal(f.classificar('Instalado', 'OPERAÇÃO').passo, 'instalado');
     assert.equal(f.classificar('Etapa 1 - Análise de Crédito', 'OPERAÇÃO').passo, 'credito');
