@@ -300,7 +300,7 @@
       window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
       const r = estado.resultado || {}; const d = enderecoDigitado();
       try {
-        navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ planoNome: p.nome, operadora: p.operadora.nome, cep: r.cep, rua: d.rua || r.endereco?.logradouro, numero: d.numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, rastreio: RASTREIO })], { type: 'application/json' }));
+        navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ planoNome: p.nome, operadora: p.operadora.nome, valor: p.precoPromo ?? p.preco, cep: r.cep, rua: d.rua || r.endereco?.logradouro, numero: d.numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, rastreio: RASTREIO })], { type: 'application/json' }));
       } catch {}
     }));
   }

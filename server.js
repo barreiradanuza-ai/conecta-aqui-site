@@ -181,7 +181,7 @@ async function rotaPublica(req, res, url) {
       cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2),
       planoNome: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40), origem: b.geral ? 'whatsapp-geral' : 'whatsapp',
     });
-    const rc = rastreio.registrarClique(b, { plano: String(b.planoNome || '').slice(0, 100), cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2) });
+    const rc = rastreio.registrarClique(b, { plano: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40), valor: Number(b.valor) || null, cep: cobertura.limparCep(b.cep).slice(0, 8), rua: String(b.rua || '').slice(0, 120), numero: String(b.numero || '').slice(0, 10), bairro: String(b.bairro || '').slice(0, 60), cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2) });
     if (rc) Object.assign(leads[leads.length - 1], { ref: rc.ref, canal: 'googleads' });
     store.save('leads', leads.slice(-20000));
     return json(res, 200, { ok: true });

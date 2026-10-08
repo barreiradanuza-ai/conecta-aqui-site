@@ -46,6 +46,14 @@ const mcc = http.createServer((req, res) => {
   if (u.pathname.startsWith('/api/v1/')) {
     if (req.headers.authorization !== 'Bearer dc_teste') { res.statusCode = 401; return res.end('{}'); }
     const DC = global.DC;
+    // campos do negócio e produtos: mesmo formato visto na tela do DataCrazy
+    if (u.pathname === '/api/v1/additional-fields/business/B1' && req.method === 'GET') return res.end(JSON.stringify({ data: DC.camposNegocio.map((c) => ({ id: 'v' + c.id, additionalField: { id: c.id, name: c.name, type: 'string', entity: 'business', options: null }, value: c.value ?? null })) }));
+    const pc = u.pathname.match(/^\/api\/v1\/additional-fields\/business\/B1\/(\w+)$/);
+    if (pc && req.method === 'PUT') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { DC.camposNegocio.find((c) => c.id === pc[1]).value = JSON.parse(b).value; res.end('{}'); }); return; }
+    if (u.pathname === '/api/v1/products' && req.method === 'GET') return res.end(JSON.stringify({ count: DC.produtos.length, data: DC.produtos }));
+    if (u.pathname === '/api/v1/products' && req.method === 'POST') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const p = { id: 'P' + (DC.produtos.length + 1), ...JSON.parse(b) }; DC.produtos.push(p); res.end(JSON.stringify(p)); }); return; }
+    if (u.pathname === '/api/v1/leads/L1/businesses') return res.end(JSON.stringify({ data: [DC.negocio] }));
+    if (u.pathname === '/api/v1/businesses/B1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const j = JSON.parse(b); if (j.products) DC.negocio.products = j.products.map((x) => ({ id: 'bp1', product: { id: x.product.id, name: x.product.name }, quantity: x.quantity, price: x.price, total: x.total })); res.end(JSON.stringify(DC.negocio)); }); return; }
     if (u.pathname === '/api/v1/pipelines') return res.end(JSON.stringify({ data: [{ id: 'p1', name: 'Vendas' }] }));
     if (u.pathname === '/api/v1/pipelines/p1/stages') return res.end(JSON.stringify({ data: [{ id: 's1', name: 'Novo' }, { id: 's9', name: 'Pendente de Instalacao' }] }));
     if (u.pathname === '/api/v1/tags' && req.method === 'GET') return res.end(JSON.stringify({ data: DC.tags }));
@@ -53,7 +61,7 @@ const mcc = http.createServer((req, res) => {
     if (u.pathname === '/api/v1/conversations') return res.end(JSON.stringify({ data: !Number(u.searchParams.get('skip')) ? [{ id: 'c1', lastReceivedMessageDate: new Date().toISOString(), contact: { name: 'Ana', phoneNumber: '5521999991234' } }] : [] }));
     if (u.pathname === '/api/v1/conversations/c1/messages') return res.end(JSON.stringify({ data: [{ body: 'Olá! Quero contratar o plano X\n(Ref: G-ABCDE)', received: true }] }));
     if (u.pathname === '/api/v1/leads' && req.method === 'GET') return res.end(JSON.stringify({ data: (u.searchParams.get('search') || '').endsWith('999991234') ? [DC.lead] : [] }));
-    if (u.pathname === '/api/v1/leads/L1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { DC.lead.tags = JSON.parse(b).tags; res.end('{}'); }); return; }
+    if (u.pathname === '/api/v1/leads/L1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const j = JSON.parse(b); if (j.tags) DC.lead.tags = j.tags; if (j.address) DC.lead.address = j.address; if (j.additionalFields) DC.lead.extras = j.additionalFields; res.end('{}'); }); return; }
     if (u.pathname === '/api/v1/businesses') return res.end(JSON.stringify({ data: u.searchParams.get('skip') === '0' ? [{ id: 'B1', code: 101, leadId: 'L1', stageId: 's9', lastMovedAt: '2026-10-07T15:30:00.000Z', total: 120 }] : [] }));
     res.statusCode = 404; return res.end('{}');
   }
@@ -74,7 +82,7 @@ const mcc = http.createServer((req, res) => {
   process.env.ADS_FEED_TOKEN = 'feedtoken1234567890';
   process.env.ADS_FEED_USER = 'conectaaqui';
   process.env.ADS_FEED_PASS = 'senhaFeed';
-  global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] } };
+  global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] }, produtos: [{ id: 'P0', name: 'Nio Fibra 600', id_sku: 'nf500', price: 110 }], negocio: { id: 'B1', code: 101, leadId: 'L1', status: 'in_process', products: [] }, camposNegocio: [{ id: 'f1', name: 'Plano' }, { id: 'f2', name: 'Operadora escolhida' }, { id: 'f3', name: 'Vendedor', value: 'Ana' }] };
   process.env.MCC_PASSWORD = 'segredo';
   process.env.ADMIN_PASSWORD = 'admin123';
   process.env.WHATSAPP_NUMBER = '5521900000000';
@@ -185,25 +193,45 @@ const mcc = http.createServer((req, res) => {
   });
   await t('Google Ads → DataCrazy: código no WhatsApp vira tag e venda vira conversão offline', async () => {
     // clique em "Quero este plano" vindo de anúncio
-    await send('/api/clique', 'POST', { planoNome: 'Nio Fibra', rastreio: { ref: 'G-ABCDE', gclid: 'Cj0KCQabc123', utm_source: 'google' } });
+    await send('/api/clique', 'POST', { planoNome: 'Nio Fibra', operadora: 'Nio', valor: 110, cep: '35700-001', rua: 'Rua A', numero: '12', bairro: 'Centro', cidade: 'Sete Lagoas', uf: 'MG', rastreio: { ref: 'G-ABCDE', gclid: 'Cj0KCQabc123', utm_source: 'google' } });
     // clique sem anúncio não registra
     await send('/api/clique', 'POST', { planoNome: 'Nio Fibra', rastreio: { ref: 'G-ZZZZZ' } });
     const st = (await send('/admin/api/datacrazy/sincronizar', 'POST', {}, H)).j;
     assert.ok(!st.erro, st.erro);
     assert.deepEqual(global.DC.lead.tags.map((x) => x.id).sort(), ['t1', 't2'], 'tag googleads adicionada mantendo as outras');
+    assert.deepEqual(global.DC.lead.address, { zip: '35700001', address: 'Rua A, 12', block: 'Centro', city: 'Sete Lagoas', state: 'MG', country: 'Brasil' });
+    assert.deepEqual(global.DC.camposNegocio.map((c) => [c.name, c.value]), [['Plano', 'Nio Fibra'], ['Operadora escolhida', 'Nio'], ['Vendedor', 'Ana']], 'campos do negócio');
+    assert.deepEqual(global.DC.produtos.map((p) => p.name), ['Nio Fibra 600', 'Nio Fibra'], 'plano sem velocidade não acha no catálogo: cria');
+    assert.deepEqual(global.DC.negocio.products.map((p) => [p.product.name, p.price]), [['Nio Fibra', 110]], 'produto no negócio');
     const d = (await get('/admin/api/datacrazy', H)).j;
     assert.equal(d.cliquesGoogle, 1); assert.equal(d.vinculos, 1); assert.equal(d.conversoes.length, 1);
     assert.ok(d.feedUrl.endsWith('/ads/conversoes/feedtoken1234567890.csv'));
     assert.equal((await fetchOrig(B + '/ads/conversoes/feedtoken1234567890.csv')).status, 401, 'sem senha recusa');
     const csvR = await fetchOrig(B + '/ads/conversoes/feedtoken1234567890.csv', { headers: { authorization: 'Basic ' + Buffer.from('conectaaqui:senhaFeed').toString('base64') } }); const csvT = await csvR.text();
-    assert.ok(csvT.includes('Parameters:TimeZone=America/Sao_Paulo'));
-    assert.ok(csvT.includes('Cj0KCQabc123,Venda - Pendente de instalação,2026-10-07 12:30:00,120.00,BRL'), csvT);
+    assert.ok(csvT.startsWith('Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency'));
+    assert.ok(csvT.includes('Cj0KCQabc123,Venda - Pendente de instalação,2026-10-07 12:30:00-03:00,120.00,BRL'), csvT);
     assert.equal((await fetchOrig(B + '/ads/conversoes/tokenerrado123456789.csv')).status, 404);
     // segunda sincronização não duplica
     await send('/admin/api/datacrazy/sincronizar', 'POST', {}, H);
     assert.equal((await get('/admin/api/datacrazy', H)).j.conversoes.length, 1);
     const diag = (await get('/admin/api/datacrazy/diagnostico', H)).j;
     assert.ok(diag.etapaEncontrada && diag.tagExiste && diag.temTelefoneNaConversa, JSON.stringify(diag));
+  });
+  await t('Lê plano e endereço da mensagem do site', async () => {
+    const { lerMensagemSite } = require('../lib/datacrazy');
+    const d = lerMensagemSite('Olá! Quero contratar o plano Nio Fibra 600 Mega (Nio) de R$\u00a0110,00/mês.\nEndereço: Rua das Flores, 123 - Centro - Sete Lagoas/MG - CEP 35700-001\n(Ref: G-ABCDE)');
+    assert.deepEqual(d, { plano: 'Nio Fibra 600 Mega', operadora: 'Nio', valor: 110, cep: '35700001', cidade: 'Sete Lagoas', uf: 'MG', rua: 'Rua das Flores', numero: '123', bairro: 'Centro' });
+    assert.equal(lerMensagemSite('Olá! Quero ajuda para escolher um plano de internet.'), null);
+    const dc = require('../lib/datacrazy');
+    assert.equal(dc.nomeOperadora('TIM'), 'Tim'); assert.equal(dc.nomeOperadora('claro'), 'Claro');
+    assert.equal(dc.valorParaCampo({ opcoes: [{ label: 'TIM' }] }, 'Tim'), 'TIM');
+    assert.equal(dc.nomeProduto({ plano: 'Fibra 500 Mega', operadora: 'Claro' }), 'Claro Fibra 500');
+    const cat = [{ name: 'Nio Fibra 600', price: 110 }, { name: 'Tim Fibra 600 + Paramount', price: 109.9 }, { name: 'Tim Fibra 600', price: 99 }, { name: 'Nio Fibra 1 GB Promo', price: 75 }];
+    assert.equal(dc.acharNoCatalogo(cat, { plano: 'Nio Fibra 600 Mega', operadora: 'Nio', valor: 110 }).name, 'Nio Fibra 600');
+    assert.equal(dc.acharNoCatalogo(cat, { plano: 'TIM Ultrafibra 600 Mega + Paramount+', operadora: 'TIM' }).name, 'Tim Fibra 600 + Paramount');
+    assert.equal(dc.acharNoCatalogo(cat, { plano: 'TIM Ultrafibra 600 Mega', operadora: 'TIM' }).name, 'Tim Fibra 600');
+    assert.equal(dc.acharNoCatalogo(cat, { plano: 'Nio 1 Giga Promo', operadora: 'Nio' }).name, 'Nio Fibra 1 GB Promo');
+    assert.equal(dc.acharNoCatalogo(cat, { plano: 'Nio Essencial 700 Mega + chip 5G', operadora: 'Nio' }), null);
   });
   await t('Arquivos estáticos e proteção de caminho', async () => {
     assert.equal((await fetchOrig(B + '/')).status, 200);
