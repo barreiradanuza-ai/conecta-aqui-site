@@ -12,6 +12,9 @@ const rastreio = require('./lib/rastreio');
 const datacrazy = require('./lib/datacrazy');
 const cobertura = require('./lib/cobertura');
 const monitor = require('./lib/monitor');
+const gasto = require('./lib/gasto');
+const trafego = require('./lib/trafego');
+const { scriptGoogle } = require('./lib/script-google');
 const UPLOADS_DIR = path.join(store.DATA_DIR, 'uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -186,6 +189,13 @@ async function rotaPublica(req, res, url) {
     store.save('leads', leads.slice(-20000));
     return json(res, 200, { ok: true });
   }
+  // gasto do Google Ads enviado pelo script da conta
+  const envio = url.pathname.match(/^\/ads\/gasto\/google\/([A-Za-z0-9_-]{16,})$/);
+  if (req.method === 'POST' && envio) {
+    const tok = process.env.ADS_FEED_TOKEN || '';
+    if (!tok || envio[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(envio[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
+    return json(res, 200, gasto.receberGoogle(await lerJson(req)));
+  }
   const feed = url.pathname.match(/^\/ads\/conversoes\/([A-Za-z0-9_-]{16,})\.csv$/);
   if (req.method === 'GET' && feed) {
     const tok = process.env.ADS_FEED_TOKEN || '';
@@ -343,6 +353,23 @@ async function rotaAdmin(req, res, url) {
   if (p === '/datacrazy/sincronizar' && req.method === 'POST') return json(res, 200, await datacrazy.sincronizar(rastreio));
   if (p === '/datacrazy/diagnostico' && req.method === 'GET') return json(res, 200, await datacrazy.diagnostico());
   if (p === '/datacrazy/testar-negocio' && req.method === 'POST') { const b = await lerJson(req); return json(res, 200, await datacrazy.testarNegocio(String((b && b.nome) || 'TESTE API').slice(0, 80))); }
+  // --- Tráfego (painel de gestão) ---
+  if (p === '/trafego' && req.method === 'GET') {
+    const d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get(k) || '') ? url.searchParams.get(k) : null);
+    return json(res, 200, trafego.relatorio(d('de'), d('ate')));
+  }
+  if (p === '/trafego/config' && req.method === 'PUT') return json(res, 200, trafego.salvarConfig(await lerJson(req)));
+  if (p === '/trafego/atualizar' && req.method === 'POST') {
+    const meta = await gasto.lerMeta();
+    const dc = await datacrazy.sincronizar(rastreio);
+    return json(res, 200, { meta, datacrazy: { erro: dc.erro || null, ultima: dc.ultima } });
+  }
+  if (p === '/trafego/script-google' && req.method === 'GET') {
+    const tok = process.env.ADS_FEED_TOKEN || '';
+    if (!tok) return json(res, 400, { erro: 'Defina ADS_FEED_TOKEN no Railway.' });
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    return enviar(res, 200, scriptGoogle(`https://${host}/ads/gasto/google/${tok}`), 'text/plain; charset=utf-8');
+  }
   // --- testar cobertura ---
   if (p === '/testar' && req.method === 'GET') {
     cobertura.limparCache();
@@ -396,6 +423,7 @@ if (require.main === module) {
   servidor.listen(PORT, () => {
     if (process.env.MONITOR_OFERTAS !== 'off') monitor.iniciar();
     datacrazy.iniciar(rastreio);
+    gasto.iniciar();
     console.log(`Conecta Aqui rodando na porta ${PORT}`);
     if (cobertura.MODO_DEMO) console.warn('ATENÇÃO: MCC_EMAIL/MCC_PASSWORD não definidos. Cobertura em MODO DEMONSTRAÇÃO (dados fictícios).');
     if (!ADMIN_PASSWORD) console.warn('ATENÇÃO: ADMIN_PASSWORD não definida. O painel ficará bloqueado.');

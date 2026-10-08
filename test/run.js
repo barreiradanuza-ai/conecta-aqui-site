@@ -51,6 +51,13 @@ const mcc = http.createServer((req, res) => {
     const id = u.pathname.split('/').pop();
     let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { DC.camposNegocio.find((c) => c.id === id).value = JSON.parse(b).value; res.end('{}'); }); return;
   }
+  if (u.pathname === '/v23.0/act_111/insights') {
+    if (u.searchParams.get('access_token') !== 'meta_teste') { res.statusCode = 400; return res.end(JSON.stringify({ error: { message: 'token inválido' } })); }
+    return res.end(JSON.stringify({ data: [
+      { date_start: '2026-10-06', campaign_id: 'M1', campaign_name: 'Meta WhatsApp', spend: '40.50', impressions: '5000', clicks: '120', actions: [{ action_type: 'onsite_conversion.messaging_conversation_started_7d', value: '20' }] },
+      { date_start: '2026-10-07', campaign_id: 'M1', campaign_name: 'Meta WhatsApp', spend: '59.50', impressions: '6000', clicks: '140', actions: [{ action_type: 'onsite_conversion.messaging_conversation_started_7d', value: '30' }] },
+    ] }));
+  }
   if (u.pathname.startsWith('/api/v1/')) {
     if (req.headers.authorization !== 'Bearer dc_teste') { res.statusCode = 401; return res.end('{}'); }
     const DC = global.DC;
@@ -67,7 +74,7 @@ const mcc = http.createServer((req, res) => {
     if (u.pathname === '/api/v1/tags' && req.method === 'GET') return res.end(JSON.stringify({ data: DC.tags }));
     if (u.pathname === '/api/v1/tags' && req.method === 'POST') { const t = { id: 't' + (DC.tags.length + 1), name: 'googleads' }; DC.tags.push(t); return res.end(JSON.stringify(t)); }
     if (u.pathname === '/api/v1/conversations') return res.end(JSON.stringify({ data: !Number(u.searchParams.get('skip')) ? [{ id: 'c1', lastReceivedMessageDate: new Date().toISOString(), contact: { name: 'Ana', phoneNumber: '5521999991234' } }] : [] }));
-    if (u.pathname === '/api/v1/conversations/c1/messages') return res.end(JSON.stringify({ data: [{ body: 'Olá! Quero contratar o plano X\n(Ref: G-ABCDE)', received: true }] }));
+    if (u.pathname === '/api/v1/conversations/c1/messages') return res.end(JSON.stringify({ data: DC.msgs || [{ id: 'm1', body: 'Olá! Quero contratar o plano X\n(Ref: G-ABCDE)', received: true }] }));
     if (u.pathname === '/api/v1/leads' && req.method === 'GET') return res.end(JSON.stringify({ data: u.searchParams.get('search') === 'TESTE API' ? [{ id: 'L1', name: 'TESTE API' }] : (u.searchParams.get('search') || '').endsWith('999991234') ? [DC.lead] : [] }));
     if (u.pathname === '/api/v1/leads/L1' && req.method === 'PATCH') { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { const j = JSON.parse(b); if (j.tags) DC.lead.tags = j.tags; if (j.address) DC.lead.address = j.address; if (j.additionalFields) DC.lead.extras = j.additionalFields; res.end('{}'); }); return; }
     if (u.pathname === '/api/v1/businesses') return res.end(JSON.stringify({ data: u.searchParams.get('skip') === '0' ? [{ id: 'B1', code: 101, leadId: 'L1', stageId: 's9', lastMovedAt: '2026-10-07T15:30:00.000Z', total: 120 }] : [] }));
@@ -89,6 +96,7 @@ const mcc = http.createServer((req, res) => {
   process.env.DATACRAZY_ESPACO_MS = '0';
   process.env.DATACRAZY_CRM_URL = process.env.MCC_BASE_URL;
   process.env.ADS_FEED_TOKEN = 'feedtoken1234567890';
+  process.env.META_GRAPH_URL = process.env.MCC_BASE_URL; process.env.META_TOKEN = 'meta_teste'; process.env.META_CONTAS = 'act_111';
   process.env.ADS_FEED_USER = 'conectaaqui';
   process.env.ADS_FEED_PASS = 'senhaFeed';
   global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] }, produtos: [{ id: 'P0', name: 'Nio Fibra 600', id_sku: 'nf500', price: 110 }], negocio: { id: 'B1', code: 101, leadId: 'L1', status: 'in_process', products: [] }, tentativas: [], camposNegocio: [{ id: 'f1', name: 'Plano' }, { id: 'f2', name: 'Operadora escolhida' }, { id: 'f3', name: 'Vendedor', value: 'Ana' }] };
@@ -234,6 +242,47 @@ const mcc = http.createServer((req, res) => {
     assert.deepEqual(r.tentativas.map((x) => [x.etapa, x.ok]), [['campo', true], ['campo', true], ['produto', true]]);
     assert.deepEqual(r.camposAgora, { Plano: 'Nio Fibra 600 Mega', 'Operadora escolhida': 'Nio' });
     assert.equal(global.DC.camposNegocio[0].value, 'Nio Fibra 600 Mega');
+  });
+  await t('Nova mensagem do site na mesma conversa é processada de novo', async () => {
+    global.DC.msgs = [{ id: 'm1', body: 'Olá! Quero contratar o plano X\n(Ref: G-ABCDE)', received: true, createdAt: '2026-10-07T10:00:00Z' }, { id: 'm2', body: 'Olá! Quero contratar o plano Claro Fibra 500 Mega (Claro) de R$ 69,90/mês.\nEndereço: Rua B, 5 - Centro - Niterói/RJ - CEP 24000-000', received: true, createdAt: '2026-10-08T02:30:00Z' }];
+    await send('/admin/api/datacrazy/sincronizar', 'POST', {}, H);
+    const log = (await get('/admin/api/datacrazy', H)).j.log.join('\n');
+    assert.ok(log.includes('plano Claro Fibra 500 Mega (Claro) na fila'), log);
+    await send('/admin/api/datacrazy/sincronizar', 'POST', {}, H);
+    const log2 = (await get('/admin/api/datacrazy', H)).j.log;
+    assert.equal(log2.filter((l) => l.includes('Claro Fibra 500 Mega (Claro) na fila')).length, 1, 'não repete a mesma mensagem');
+    delete global.DC.msgs;
+  });
+  await t('Tráfego: gasto do Google (script) e do Meta (API) + funil do DataCrazy', async () => {
+    assert.equal((await fetchOrig(B + '/ads/gasto/google/tokenerrado123456789', { method: 'POST', body: '{}' })).status, 404);
+    const linhas = [
+      { data: '2026-10-06', campanhaId: '24330418004', campanha: 'CA | Pesquisa', status: 'ENABLED', gasto: 120.5, impressoes: 900, cliques: 40, conversoes: 3 },
+      { data: '2026-10-07', campanhaId: '24330418004', campanha: 'CA | Pesquisa', status: 'ENABLED', gasto: 79.5, impressoes: 700, cliques: 30, conversoes: 2 },
+    ];
+    const r = await fetchOrig(B + '/ads/gasto/google/feedtoken1234567890', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ conta: '1037631507', linhas, termos: [{ termo: 'claro boleto', campanha: 'CA', grupo: 'Op', gasto: 12, cliques: 3, conversoes: 0 }] }) });
+    assert.equal((await r.json()).linhas, 2);
+    // reenviar não duplica
+    await fetchOrig(B + '/ads/gasto/google/feedtoken1234567890', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ linhas }) });
+    const at = (await send('/admin/api/trafego/atualizar', 'POST', {}, H)).j;
+    assert.equal(at.meta.linhas, 2, JSON.stringify(at));
+    const rel = (await get('/admin/api/trafego?de=2026-10-01&ate=2026-10-31', H)).j;
+    assert.equal(rel.canais.google.gasto, 200); assert.equal(rel.canais.meta.gasto, 100); assert.equal(rel.canais.total.gasto, 300);
+    assert.equal(rel.canais.meta.convPlataforma, 50);
+    assert.equal(rel.canais.google.vendas, 1, 'negócio em Pendente de Instalação conta como venda do Google');
+    assert.equal(rel.canais.google.cpv, 200);
+    assert.equal(rel.funil.canais.google.passos[3], 1);
+    assert.equal(rel.campanhas.length, 2); assert.equal(rel.termosSemConversao[0].termo, 'claro boleto');
+    assert.equal(rel.serie.length, 31); assert.equal(rel.serie.find((x) => x.data === '2026-10-07').gasto.meta, 59.5);
+    const cfg = (await send('/admin/api/trafego/config', 'PUT', { metaVendasMes: 40, metaCpv: '150' }, H)).j;
+    assert.equal(cfg.metaVendasMes, 40); assert.equal(cfg.metaCpv, 150);
+    const sc = await fetchOrig(B + '/admin/api/trafego/script-google', { headers: { cookie, 'x-requested-with': 'painel' } });
+    const txt = await sc.text();
+    assert.ok(txt.includes('/ads/gasto/google/feedtoken1234567890') && txt.includes('function main()'), txt.slice(0, 200));
+    const f = require('../lib/funil');
+    assert.deepEqual(f.classificar('Sem viabilidade', 'CANCELAMENTOS'), { passo: null, perdido: 'Sem viabilidade' });
+    assert.equal(f.classificar('Instalado', 'OPERAÇÃO').passo, 'instalado');
+    assert.equal(f.classificar('Etapa 1 - Análise de Crédito', 'OPERAÇÃO').passo, 'credito');
+    assert.equal(f.origemDe({ lead: { tags: [{ name: 'meta_ads' }] } }, 'Lead API', false), 'meta');
   });
   await t('Lê plano e endereço da mensagem do site', async () => {
     const { lerMensagemSite } = require('../lib/datacrazy');
