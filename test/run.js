@@ -319,6 +319,14 @@ const mcc = http.createServer((req, res) => {
     assert.equal((await send('/api/clique', 'POST', { planoNome: 'Nio Fibra', operadora: 'Nio', rastreio: null })).s, 200);
     assert.equal((await send('/api/contato', 'POST', { nome: 'Teste Sem Anuncio', telefone: '21988887777', rastreio: null })).s, 200);
   });
+  await t('Texto da mensagem em formatos diferentes (API oficial)', async () => {
+    const dc = require('../lib/datacrazy');
+    assert.equal(dc.textoMsg({ body: 'oi' }), 'oi');
+    assert.equal(dc.textoMsg({ id: 'abcdef0123456789abcdef', content: { text: 'Quero contratar o plano X (Nio)' } }), 'Quero contratar o plano X (Nio)');
+    assert.equal(dc.textoMsg({ message: { conversation: 'Olá! Quero contratar o plano Y (Claro)' }, createdAt: '2026-10-08T10:00:00Z' }), 'Olá! Quero contratar o plano Y (Claro)');
+    const d = (await fetchOrig(B + '/ads/diagnostico/feedtoken1234567890.json')).status; assert.equal(d, 200);
+    assert.equal((await fetchOrig(B + '/ads/diagnostico/tokenerrado123456789.json')).status, 404);
+  });
   await t('Lê plano e endereço da mensagem do site', async () => {
     const { lerMensagemSite } = require('../lib/datacrazy');
     const d = lerMensagemSite('Olá! Quero contratar o plano Nio Fibra 600 Mega (Nio) de R$\u00a0110,00/mês.\nEndereço: Rua das Flores, 123 - Centro - Sete Lagoas/MG - CEP 35700-001\n(Ref: G-ABCDE)');

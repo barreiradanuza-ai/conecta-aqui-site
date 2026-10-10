@@ -4,7 +4,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
- 
+
 const store = require('./lib/store');
 const csv = require('./lib/csv');
 const faixas = require('./lib/faixas');
@@ -17,15 +17,15 @@ const trafego = require('./lib/trafego');
 const { scriptGoogle } = require('./lib/script-google');
 const UPLOADS_DIR = path.join(store.DATA_DIR, 'uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
- 
+
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const IS_PROD = process.env.NODE_ENV === 'production';
- 
+
 store.init();
- 
+
 // ---------------- utilidades HTTP ----------------
 function enviar(res, status, corpo, tipo = 'application/json; charset=utf-8', extras = {}) {
   const dados = typeof corpo === 'string' || Buffer.isBuffer(corpo) ? corpo : JSON.stringify(corpo);
@@ -38,7 +38,7 @@ function enviar(res, status, corpo, tipo = 'application/json; charset=utf-8', ex
   res.end(dados);
 }
 const json = (res, status, obj) => enviar(res, status, obj);
- 
+
 function lerCorpo(req, limite = 2 * 1024 * 1024) {
   return new Promise((ok, falha) => {
     let tam = 0; const partes = [];
@@ -70,7 +70,7 @@ function lerCookies(req) {
   return Object.fromEntries((req.headers.cookie || '').split(';').map((c) => c.trim().split('=')).filter((p) => p[0]).map(([k, ...v]) => [k, decodeURIComponent(v.join('='))]));
 }
 const ipDe = (req) => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
- 
+
 // ---------------- limite de requisições ----------------
 const janelas = new Map();
 function limitar(req, chave, max, janelaMs) {
@@ -81,7 +81,7 @@ function limitar(req, chave, max, janelaMs) {
   if (janelas.size > 50000) janelas.clear();
   return lista.length <= max;
 }
- 
+
 // ---------------- sessão do painel ----------------
 const assinar = (v) => crypto.createHmac('sha256', SESSION_SECRET).update(v).digest('hex');
 function criarSessao() {
@@ -104,7 +104,7 @@ function senhaConfere(s) {
   const b = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest();
   return crypto.timingSafeEqual(a, b);
 }
- 
+
 // ---------------- dados ----------------
 const operadorasAtivas = () => store.load('operadoras', []).filter((o) => o.ativo);
 function planosPublicos(filtro) {
@@ -120,10 +120,10 @@ function planosPublicos(filtro) {
       operadora: { id: p.operadoraId, nome: ops[p.operadoraId].nome, cor: ops[p.operadoraId].cor, logoUrl: ops[p.operadoraId].logoUrl },
     }));
 }
- 
+
 const COLUNAS_PLANO = ['id', 'operadoraId', 'nome', 'tipo', 'velocidadeMbps', 'preco', 'precoPromo', 'mesesPromo', 'beneficios', 'streaming', 'mesesStreaming', 'destaque', 'ativo', 'apenasCidadePromo', 'linkContratacao', 'ordem'];
 const COLUNAS_LEAD = ['criadoEm', 'nome', 'telefone', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'planoNome', 'operadora', 'origem'];
- 
+
 // ---------------- rotas públicas ----------------
 async function rotaPublica(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/cobertura') {
@@ -196,6 +196,13 @@ async function rotaPublica(req, res, url) {
     if (!tok || envio[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(envio[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
     return json(res, 200, gasto.receberGoogle(await lerJson(req)));
   }
+  // diagnóstico do DataCrazy (sem dados pessoais), protegido pelo mesmo token
+  const dg = url.pathname.match(/^\/ads\/diagnostico\/([A-Za-z0-9_-]{16,})\.json$/);
+  if (req.method === 'GET' && dg) {
+    const tok = process.env.ADS_FEED_TOKEN || '';
+    if (!tok || dg[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(dg[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
+    return json(res, 200, await datacrazy.diagnosticoConversas(Math.min(10, Number(url.searchParams.get('n')) || 5)));
+  }
   // relatório em JSON para a IA estrategista (só números agregados, sem dados de clientes)
   const rel = url.pathname.match(/^\/ads\/relatorio\/([A-Za-z0-9_-]{16,})\.(json|txt)$/);
   if (req.method === 'GET' && rel) {
@@ -204,14 +211,6 @@ async function rotaPublica(req, res, url) {
     const d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get(k) || '') ? url.searchParams.get(k) : null);
     const r = trafego.relatorio(d('de'), d('ate'));
     return rel[2] === 'txt' ? enviar(res, 200, trafego.texto(r), 'text/plain; charset=utf-8') : json(res, 200, r);
-  }
-  // mapa do DataCrazy (funis, etapas, campos e produtos de um telefone de teste) para mapear a integração
-  const mp = url.pathname.match(/^\/ads\/datacrazy-mapa\/([A-Za-z0-9_-]{16,})\.txt$/);
-  if (req.method === 'GET' && mp) {
-    const tok = process.env.ADS_FEED_TOKEN || '';
-    if (!tok || mp[1].length !== tok.length || !crypto.timingSafeEqual(Buffer.from(mp[1]), Buffer.from(tok))) return json(res, 404, { erro: 'Não encontrado' });
-    if (!limitar(req, 'mapa', 6, 60_000)) return json(res, 429, { erro: 'Aguarde um minuto' });
-    return enviar(res, 200, await datacrazy.mapa(url.searchParams.get('telefone') || ''), 'text/plain; charset=utf-8');
   }
   const feed = url.pathname.match(/^\/ads\/conversoes\/([A-Za-z0-9_-]{16,})\.csv$/);
   if (req.method === 'GET' && feed) {
@@ -230,7 +229,7 @@ async function rotaPublica(req, res, url) {
   }
   return false;
 }
- 
+
 // ---------------- rotas do painel ----------------
 async function rotaAdmin(req, res, url) {
   if (url.pathname === '/admin/api/login' && req.method === 'POST') {
@@ -246,10 +245,10 @@ async function rotaAdmin(req, res, url) {
   if (!sessaoValida(req)) return json(res, 401, { erro: 'Não autenticado' });
   // proteção extra contra envio de outro site
   if (req.method !== 'GET' && req.headers['x-requested-with'] !== 'painel') return json(res, 403, { erro: 'Requisição recusada' });
- 
+
   const operadoras = store.load('operadoras', []);
   const p = url.pathname.replace('/admin/api', '');
- 
+
   if (p === '/status' && req.method === 'GET') {
     return json(res, 200, { modoDemo: cobertura.MODO_DEMO, planos: store.load('planos', []).length, leads: store.load('leads', []).length });
   }
@@ -395,7 +394,7 @@ async function rotaAdmin(req, res, url) {
   }
   return json(res, 404, { erro: 'Rota não encontrada' });
 }
- 
+
 // ---------------- arquivos estáticos ----------------
 const TIPOS_ARQ = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp' };
 function estatico(req, res, url) {
@@ -416,7 +415,7 @@ function estatico(req, res, url) {
     enviar(res, 200, dados, TIPOS_ARQ[ext] || 'application/octet-stream', { 'cache-control': ['.html', '.css', '.js'].includes(ext) ? 'no-cache' : 'public, max-age=86400' });
   });
 }
- 
+
 // ---------------- servidor ----------------
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://local');
@@ -435,7 +434,7 @@ const servidor = http.createServer(async (req, res) => {
     if (!res.headersSent) json(res, status, { erro: status === 500 ? 'Não foi possível concluir agora. Tente novamente.' : e.message });
   }
 });
- 
+
 if (require.main === module) {
   servidor.listen(PORT, () => {
     if (process.env.MONITOR_OFERTAS !== 'off') monitor.iniciar();
