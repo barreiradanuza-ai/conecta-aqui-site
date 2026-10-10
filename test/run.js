@@ -259,6 +259,11 @@ const mcc = http.createServer((req, res) => {
     await send('/admin/api/datacrazy/sincronizar', 'POST', {}, H);
     const log2 = (await get('/admin/api/datacrazy', H)).j.log;
     assert.equal(log2.filter((l) => l.includes('Claro Fibra 500 Mega (Claro) na fila')).length, 1, 'não repete a mesma mensagem');
+    // a escolha nova substitui o que o sistema tinha preenchido (mas não o que a equipe preencheu)
+    assert.deepEqual(global.DC.camposNegocio.map((c) => c.value), ['Claro Fibra 500 Mega', 'Claro', 'Ana']);
+    assert.deepEqual(global.DC.negocio.products.map((p) => p.product.name), ['Claro Fibra 500 Mega'].map(() => global.DC.negocio.products[0].product.name));
+    assert.ok(/claro/i.test(global.DC.negocio.products[0].product.name), JSON.stringify(global.DC.negocio.products));
+    assert.equal(global.DC.lead.address.zip, '24000000', 'endereço novo substitui o antigo');
     delete global.DC.msgs;
   });
   await t('Tráfego: gasto do Google (script) e do Meta (API) + funil do DataCrazy', async () => {
