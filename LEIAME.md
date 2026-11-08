@@ -21,13 +21,11 @@ Ninguém cadastra plano à mão. A cada 6 horas (e no botão "Sincronizar agora"
 
 Tudo fica em `DATA_DIR/catalogo.json`. Se o site de uma operadora falhar, os últimos preços lidos dela continuam valendo e o painel mostra o erro. Os ids dos planos são estáveis (vêm do SKU/ID da operadora), então as escolhas do painel sobrevivem às sincronizações.
 
-O painel (`DATA_DIR/curadoria.json`) guarda só: **destaques** (aparecem em "Ofertas do mês" e primeiro nos resultados), **ocultos**, **preço promo da Nio** por plano e a opção **"Nio em área promocional"**.
+O painel (`DATA_DIR/curadoria.json`) guarda só: **destaques** (aparecem em "Ofertas do mês" e primeiro nos resultados), **ocultos** e o **preço promo da Nio** por plano.
 
 ### Área promocional da Nio
 
-A lista `cidades-promo-claro` do app Minha Casa Conectada é a lista de cidades onde a Nio está em promoção. Quando a cidade do CEP está nela:
-- a Nio aparece nos resultados mesmo que o CEP não esteja na lista `ceps-nio` (dá para desligar no painel);
-- os planos da Nio usam o "preço promo Nio" informado no painel (em branco, vale o preço do site).
+A Nio tem preço diferenciado em algumas cidades. A lista `cidades-promo-claro` do app Minha Casa Conectada é a lista dessas cidades (ex.: ALEGRETE). A regra é o cruzamento das duas listas: o CEP está em `ceps-nio` **e** a cidade do CEP está em `cidades-promo-claro`. Só então os planos da Nio usam o "preço promo Nio" informado no painel (em branco, vale o preço do site). A Nio nunca aparece só pela cidade: a cobertura continua vindo da lista de CEPs.
 
 ## Como a ponte funciona
 

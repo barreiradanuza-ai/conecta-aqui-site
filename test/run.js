@@ -7,9 +7,9 @@ const assert = require('node:assert/strict');
 
 const LISTAS = {
   'ceps-claro': ['01002000', '01002001', '20040002'],
-  'ceps-nio': ['20040002'],
+  'ceps-nio': ['20040002', '97541000'],
   'ceps-tim': ['01002000'],
-  'cidades-promo-claro': ['SAO PAULO'],
+  'cidades-promo-claro': ['SAO PAULO', 'ALEGRETE'],
 };
 let logins = 0;
 const mcc = http.createServer((req, res) => {
@@ -104,7 +104,7 @@ const mcc = http.createServer((req, res) => {
     res.statusCode = 404; return res.end('{}');
   }
   const vc = u.pathname.match(/^\/ws\/(\d{8})\/json\/$/);
-  if (vc) return res.end(JSON.stringify({ cep: vc[1], uf: vc[1] < '20000000' ? 'SP' : 'RJ', localidade: vc[1] < '20000000' ? 'São Paulo' : 'Rio de Janeiro' }));
+  if (vc) return res.end(JSON.stringify(vc[1] === '97541000' ? { cep: vc[1], uf: 'RS', localidade: 'Alegrete' } : { cep: vc[1], uf: vc[1] < '20000000' ? 'SP' : 'RJ', localidade: vc[1] < '20000000' ? 'São Paulo' : 'Rio de Janeiro' }));
   res.statusCode = 404; res.end('{}');
 });
 
@@ -180,11 +180,11 @@ const mcc = http.createServer((req, res) => {
     global.timFora = false;
     assert.equal((await catalogo.sincronizarOperadora('tim')).ok, true);
   });
-  await t('SP 01002-000: Claro + TIM + Nio (cidade promo); preço da Claro é o de São Paulo e TIM usa tabela SP', async () => {
+  await t('SP 01002-000: Claro + TIM; cidade promo mas CEP fora da lista da Nio => sem Nio e sem promo', async () => {
     const r = await get('/api/cobertura?cep=01002-000');
     assert.equal(r.s, 200);
-    assert.equal(r.j.promoNio, true, 'SAO PAULO está na lista cidades-promo-claro');
-    assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['claro', 'nio', 'tim'], 'Nio entra pela área promocional');
+    assert.equal(r.j.promoNio, false, 'SAO PAULO está em cidades-promo-claro, mas o CEP não está em ceps-nio');
+    assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['claro', 'tim'], 'Nio NÃO entra só pela cidade');
     assert.equal(r.j.demo, false);
     assert.equal(r.j.planos.find((p) => p.nome === 'Claro Fibra 350 Mega').preco, 79.9, 'preço da Claro para São Paulo');
     assert.ok(global.claroChamadas.includes('SP/sao_paulo'));
@@ -192,14 +192,14 @@ const mcc = http.createServer((req, res) => {
     assert.ok(!r.j.planos.some((p) => p.operadora.id === 'vivo'), 'Vivo sem cobertura não aparece');
     assert.equal(r.j.endereco.cidade, 'São Paulo');
   });
-  await t('Busca do MCC é "contém": 0100200 NÃO conta como coberto (match exato); só a Nio entra, pela cidade promo', async () => {
+  await t('Busca do MCC é "contém": 0100200 NÃO conta como coberto (match exato)', async () => {
     const r = await get('/api/cobertura?cep=01002002');
-    assert.deepEqual(r.j.operadoras.map((o) => o.id), ['nio']); assert.ok(r.j.planos.every((p) => p.operadora.id === 'nio'));
+    assert.equal(r.j.operadoras.length, 0); assert.equal(r.j.planos.length, 0);
   });
-  await t('RJ 20040-002: Claro + Nio, fora da área promo; Claro com preço do Rio', async () => {
+  await t('RJ 20040-002: Claro + Nio; cidade fora da lista promo => sem promo; Claro com preço do Rio', async () => {
     const r = await get('/api/cobertura?cep=20040002');
     assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['claro', 'nio']);
-    assert.equal(r.j.promoNio, false);
+    assert.equal(r.j.promoNio, false, 'Nio atende, mas RIO DE JANEIRO não está em cidades-promo-claro');
     assert.equal(r.j.planos.find((p) => p.nome === 'Claro Fibra 350 Mega').preco, 89.9);
     assert.ok(r.j.planos.every((p) => !p.promoAplicada));
   });
@@ -208,7 +208,7 @@ const mcc = http.createServer((req, res) => {
     const antes = logins;
     // força nova consulta sem cache
     const r = await get('/api/cobertura?cep=01002001');
-    assert.equal(r.s, 200); assert.ok(logins > antes); assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['claro', 'nio']);
+    assert.equal(r.s, 200); assert.ok(logins > antes); assert.deepEqual(r.j.operadoras.map((o) => o.id), ['claro']);
   });
   await t('Destaques e config públicos', async () => {
     const d = await get('/api/destaques'); assert.equal(d.j.planos.length, 4, 'sem escolha no painel: o mais barato de cada operadora'); assert.deepEqual([...new Set(d.j.planos.map((p) => p.operadora.id))].sort(), ['claro', 'nio', 'tim', 'vivo']);
@@ -234,21 +234,17 @@ const mcc = http.createServer((req, res) => {
     const nio600 = cat.planos.find((p) => p.nome === 'Nio Fibra 600 Mega');
     const tim1g = cat.planos.find((p) => p.nome === 'TIM Ultrafibra 1 Giga' && p.regiao === 'br');
     const vivo2g = cat.planos.find((p) => p.nome === 'Vivo Fibra Ultravelocidade 2 Giga');
-    const r = await send('/admin/api/curadoria', 'PUT', { destaques: { [nio600.id]: true, [tim1g.id]: 'sim', 'xx': true }, promoNio: { [nio600.id]: '95,00' }, ocultos: { [vivo2g.id]: true }, nioEmAreaPromo: true }, H);
+    const r = await send('/admin/api/curadoria', 'PUT', { destaques: { [nio600.id]: true, [tim1g.id]: 'sim', 'xx': true }, promoNio: { [nio600.id]: '95,00' }, ocultos: { [vivo2g.id]: true } }, H);
     assert.equal(r.s, 200); assert.deepEqual(Object.keys(r.j.destaques).sort(), [nio600.id, tim1g.id].sort()); assert.equal(r.j.promoNio[nio600.id], 95);
     const d = (await get('/api/destaques')).j; assert.deepEqual(d.planos.map((p) => p.id).sort(), [nio600.id, tim1g.id].sort()); assert.ok(d.planos.every((p) => p.destaque));
     assert.equal(d.planos.find((p) => p.id === nio600.id).precoPromo, null, 'na vitrine (sem CEP) vale o preço do site da Nio');
-    // cidade promo (SP): preço promo da Nio aplicado; fora dela (RJ): não
-    const sp = (await get('/api/cobertura?cep=01002000')).j; const pSp = sp.planos.find((p) => p.id === nio600.id);
-    assert.equal(pSp.precoPromo, 95); assert.equal(pSp.preco, 110); assert.equal(pSp.promoAplicada, true);
-    assert.deepEqual(sp.planos.slice(0, 2).map((p) => p.id).sort(), [nio600.id, tim1g.id].sort(), 'destaques vêm primeiro');
+    // Alegrete: CEP em ceps-nio E cidade em cidades-promo-claro => preço promo da Nio; RJ (Nio sem promo): preço do site
+    const al = (await get('/api/cobertura?cep=97541000')).j; const pAl = al.planos.find((p) => p.id === nio600.id);
+    assert.equal(al.promoNio, true); assert.deepEqual(al.operadoras.map((o) => o.id), ['nio']); assert.equal(al.endereco.cidade, 'Alegrete');
+    assert.equal(pAl.precoPromo, 95); assert.equal(pAl.preco, 110); assert.equal(pAl.promoAplicada, true);
+    assert.equal(al.planos[0].id, nio600.id, 'destaque vem primeiro');
     const rj = (await get('/api/cobertura?cep=20040002')).j; assert.equal(rj.planos.find((p) => p.id === nio600.id).precoPromo, null);
     assert.ok(!(await get('/api/cobertura?cep=01002000')).j.planos.some((p) => p.id === vivo2g.id));
-    // com a opção desligada, a Nio só entra se o CEP estiver na lista da Nio
-    await send('/admin/api/curadoria', 'PUT', { ...r.j, nioEmAreaPromo: false }, H);
-    require('../lib/cobertura').limparCache();
-    assert.deepEqual((await get('/api/cobertura?cep=01002000')).j.operadoras.map((o) => o.id).sort(), ['claro', 'tim']);
-    await send('/admin/api/curadoria', 'PUT', { ...r.j, nioEmAreaPromo: true }, H);
   });
   await t('Claro: cidade sem catálogo cai para a região padrão', async () => {
     const planos = await catalogo.planosPara({ uf: 'RJ', cidade: 'Cidade Sem Claro' });

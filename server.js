@@ -133,14 +133,12 @@ async function planosPublicos({ endereco = null, promoNio = false, filtro = () =
     .sort((a, b) => (b.destaque - a.destaque) || (efetivo(a) - efetivo(b)) || ((a.velocidadeMbps || 0) - (b.velocidadeMbps || 0)));
 }
 
-// Cobertura do CEP com a regra promocional: cidades da lista "cidades-promo-claro" do MCC são as cidades
-// onde a Nio está em promoção. Nelas, a Nio aparece (se o painel permitir) e usa o preço promo do painel.
+// Cobertura do CEP com a regra promocional da Nio: o CEP precisa estar na lista "ceps-nio" E a cidade
+// na lista "cidades-promo-claro" do MCC (que é a lista de cidades onde a Nio tem preço diferenciado).
+// Só então os planos da Nio usam o "preço promo Nio" do painel. A Nio nunca aparece só pela cidade.
 async function coberturaComPromo(cep, ops) {
   const base = await cobertura.consultar(cep, ops);
-  const dados = { ...base, operadoras: { ...base.operadoras }, promoNio: Boolean(base.promoClaro) };
-  const cur = store.curadoria();
-  if (dados.promoNio && cur.nioEmAreaPromo && ops.some((o) => o.id === 'nio')) dados.operadoras.nio = true;
-  return dados;
+  return { ...base, operadoras: { ...base.operadoras }, promoNio: Boolean(base.promoClaro && base.operadoras.nio) };
 }
 
 const COLUNAS_LEAD = ['criadoEm', 'nome', 'telefone', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'planoNome', 'operadora', 'origem'];
