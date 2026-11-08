@@ -118,11 +118,15 @@ async function planosPublicos({ endereco = null, promoNio = false, filtro = () =
   return lista
     .filter((p) => ops[p.operadoraId]?.ativo && !cur.ocultos[p.id])
     .map((p) => {
-      const promo = promoNio && p.operadoraId === 'nio' && cur.promoNio[p.id];
+      // Nio em cidade promocional: preço informado no painel para o plano ou, sem ele, o desconto padrão (50%) sobre o preço do site
+      let promo = null;
+      if (promoNio && p.operadoraId === 'nio') promo = cur.promoNio[p.id] || (cur.descontoPromoNio ? Math.round(p.preco * (1 - cur.descontoPromoNio / 100) * 100) / 100 : null);
+      if (promo && promo >= p.preco) promo = null;
       return {
-        id: p.id, nome: p.nome, tipo: p.tipo, velocidadeMbps: p.velocidadeMbps,
-        preco: p.preco, precoPromo: promo && promo < p.preco ? promo : p.precoPromo, mesesPromo: promo ? null : p.mesesPromo,
-        beneficios: p.beneficios, destaque: Boolean(cur.destaques[p.id]), selo: p.selo || '',
+        id: p.id, nome: promo ? p.nome.replace(/^(Nio \S+)/, '$1 Especial') : p.nome, tipo: p.tipo, velocidadeMbps: p.velocidadeMbps,
+        preco: p.preco, precoPromo: promo || p.precoPromo, mesesPromo: promo ? null : p.mesesPromo,
+        beneficios: promo ? p.beneficios.filter((b) => !/pagando no cart[aã]o/i.test(b)) : p.beneficios, destaque: Boolean(cur.destaques[p.id]),
+        selo: promo ? (cur.promoNio[p.id] ? 'Oferta da sua cidade' : `${cur.descontoPromoNio}% de desconto`) : (p.selo || ''),
         streaming: (p.streaming || []).map((k) => ({ id: k, nome: store.STREAMING[k] })), mesesStreaming: p.mesesStreaming ?? null,
         linkContratacao: ops[p.operadoraId].linkContratacao || p.linkContratacao || '',
         operadora: { id: p.operadoraId, nome: ops[p.operadoraId].nome, cor: ops[p.operadoraId].cor, logoUrl: ops[p.operadoraId].logoUrl },

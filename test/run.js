@@ -234,14 +234,19 @@ const mcc = http.createServer((req, res) => {
     const nio600 = cat.planos.find((p) => p.nome === 'Nio Fibra 600 Mega');
     const tim1g = cat.planos.find((p) => p.nome === 'TIM Ultrafibra 1 Giga' && p.regiao === 'br');
     const vivo2g = cat.planos.find((p) => p.nome === 'Vivo Fibra Ultravelocidade 2 Giga');
-    const r = await send('/admin/api/curadoria', 'PUT', { destaques: { [nio600.id]: true, [tim1g.id]: 'sim', 'xx': true }, promoNio: { [nio600.id]: '95,00' }, ocultos: { [vivo2g.id]: true } }, H);
-    assert.equal(r.s, 200); assert.deepEqual(Object.keys(r.j.destaques).sort(), [nio600.id, tim1g.id].sort()); assert.equal(r.j.promoNio[nio600.id], 95);
+    // sem nada configurado: desconto padrão de 50% (como no site da Nio) em Alegrete
+    const al0 = (await get('/api/cobertura?cep=97541000')).j;
+    assert.deepEqual(al0.planos.map((p) => [p.nome, p.preco, p.precoPromo, p.selo]), [['Nio Fibra Especial 600 Mega', 110, 55, '50% de desconto'], ['Nio Essencial Especial 800 Mega + Chip 5G', 140, 70, '50% de desconto'], ['Nio Super Especial 1 Giga + Globoplay + Chip 5G', 170, 85, '50% de desconto'], ['Nio Ultra Especial 1 Giga + Globoplay + Chip 5G', 200, 100, '50% de desconto']]);
+    assert.ok(!al0.planos[0].beneficios.some((b) => /cart[aã]o/.test(b)), 'o preço no cartão do plano normal não aparece no especial');
+    const r = await send('/admin/api/curadoria', 'PUT', { destaques: { [nio600.id]: true, [tim1g.id]: 'sim', 'xx': true }, promoNio: { [nio600.id]: '95,00' }, ocultos: { [vivo2g.id]: true }, descontoPromoNio: '40' }, H);
+    assert.equal(r.s, 200); assert.deepEqual(Object.keys(r.j.destaques).sort(), [nio600.id, tim1g.id].sort()); assert.equal(r.j.promoNio[nio600.id], 95); assert.equal(r.j.descontoPromoNio, 40);
     const d = (await get('/api/destaques')).j; assert.deepEqual(d.planos.map((p) => p.id).sort(), [nio600.id, tim1g.id].sort()); assert.ok(d.planos.every((p) => p.destaque));
     assert.equal(d.planos.find((p) => p.id === nio600.id).precoPromo, null, 'na vitrine (sem CEP) vale o preço do site da Nio');
     // Alegrete: CEP em ceps-nio E cidade em cidades-promo-claro => preço promo da Nio; RJ (Nio sem promo): preço do site
     const al = (await get('/api/cobertura?cep=97541000')).j; const pAl = al.planos.find((p) => p.id === nio600.id);
     assert.equal(al.promoNio, true); assert.deepEqual(al.operadoras.map((o) => o.id), ['nio']); assert.equal(al.endereco.cidade, 'Alegrete');
-    assert.equal(pAl.precoPromo, 95); assert.equal(pAl.preco, 110); assert.equal(pAl.promoAplicada, true);
+    assert.equal(pAl.precoPromo, 95); assert.equal(pAl.preco, 110); assert.equal(pAl.promoAplicada, true); assert.equal(pAl.selo, 'Oferta da sua cidade');
+    assert.equal(al.planos.find((p) => p.nome.startsWith('Nio Essencial')).precoPromo, 84, 'demais planos: desconto de 40%');
     assert.equal(al.planos[0].id, nio600.id, 'destaque vem primeiro');
     const rj = (await get('/api/cobertura?cep=20040002')).j; assert.equal(rj.planos.find((p) => p.id === nio600.id).precoPromo, null);
     assert.ok(!(await get('/api/cobertura?cep=01002000')).j.planos.some((p) => p.id === vivo2g.id));

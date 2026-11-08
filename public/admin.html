@@ -193,7 +193,8 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
           <span class="esp"></span>
           <button class="btn prim" id="salvarCuradoria">Salvar escolhas</button>
         </div>
-        <p class="dica"><b>Destaque</b>: aparece em "Ofertas do mês" na home e primeiro nos resultados. <b>Ocultar</b>: não aparece no site. <b>Preço promo Nio</b>: valor cobrado nas cidades promocionais da Nio. Vale quando o CEP está na lista "CEPs Nio" <u>e</u> a cidade está na lista "Cidades Promo Claro" do MCC (ex.: Alegrete); em branco, vale o preço do site da Nio.</p>
+        <p class="dica"><b>Destaque</b>: aparece em "Ofertas do mês" na home e primeiro nos resultados. <b>Ocultar</b>: não aparece no site. <b>Cidades promocionais da Nio</b>: quando o CEP está na lista "CEPs Nio" <u>e</u> a cidade está na lista "Cidades Promo Claro" do MCC (ex.: Alegrete, Criciúma), os planos da Nio aparecem como "Especial" com o desconto abaixo sobre o preço do site. O campo <b>Preço promo Nio</b> de um plano substitui o desconto só para aquele plano.</p>
+        <label style="max-width:260px;margin-bottom:12px">Desconto da Nio nas cidades promocionais (%)<input id="descontoPromoNio" inputmode="numeric" placeholder="50"></label>
         <div class="tab-wrap"><table>
           <thead><tr><th>Operadora</th><th>Plano</th><th>Tipo</th><th>Velocidade</th><th>Preço</th><th>Promo</th><th>Região</th><th>Destaque</th><th>Preço promo Nio</th><th>Ocultar</th></tr></thead>
           <tbody id="tabPlanos"></tbody>
@@ -283,7 +284,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const brl = (n) => (n == null ? '—' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
   const TIPOS = { internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
-  let planos = [], operadoras = [], curadoria = { destaques: {}, promoNio: {}, ocultos: {} }, syncStatus = {}, regiaoPadraoClaro = '';
+  let planos = [], operadoras = [], curadoria = { destaques: {}, promoNio: {}, ocultos: {}, descontoPromoNio: 50 }, syncStatus = {}, regiaoPadraoClaro = '';
   const STREAMS = { globoplay: 'Globoplay', paramount: 'Paramount+', max: 'Max', netflix: 'Netflix', youtube: 'YouTube Premium', disney: 'Disney+', prime: 'Prime Video', deezer: 'Deezer', apple: 'Apple TV+' };
 
   async function api(caminho, opts = {}) {
@@ -468,6 +469,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   async function carregarPlanos() {
     const r = await api('/catalogo');
     planos = r.planos; curadoria = r.curadoria; syncStatus = r.status; regiaoPadraoClaro = r.regiaoPadraoClaro;
+    $('#descontoPromoNio').value = curadoria.descontoPromoNio ?? 50;
     renderSync(); renderPlanos();
   }
   function nomeOp(id) { return operadoras.find((o) => o.id === id)?.nome || NOME_OP_SYNC[id] || id; }
@@ -521,6 +523,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     if (t.dataset.oculto) { if (t.checked) curadoria.ocultos[t.dataset.oculto] = true; else delete curadoria.ocultos[t.dataset.oculto]; }
     if (t.dataset.promoNio) { const v = t.value.trim(); if (v) curadoria.promoNio[t.dataset.promoNio] = v; else delete curadoria.promoNio[t.dataset.promoNio]; }
   });
+  $('#descontoPromoNio').addEventListener('change', (e) => { curadoria.descontoPromoNio = e.target.value; });
   $('#salvarCuradoria').addEventListener('click', async () => {
     try { curadoria = await api('/curadoria', { method: 'PUT', body: JSON.stringify(curadoria) }); renderPlanos(); flash('Escolhas salvas. Já estão no site.'); }
     catch (er) { flash(er.message, 'erro'); }
