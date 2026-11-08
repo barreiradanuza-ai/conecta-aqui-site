@@ -159,6 +159,7 @@ const mcc = http.createServer((req, res) => {
     const claro = todos.filter((p) => p.operadoraId === 'claro');
     assert.deepEqual(claro.map((p) => [p.nome, p.tipo, p.preco]), [['Claro Fibra 350 Mega', 'internet', 89.9], ['Claro Fibra 750 Mega', 'internet', 99.9], ['Claro Fibra 750 Mega + Celular Pós 60GB', 'combo-movel', 199.8], ['Claro Fibra 5 Giga', 'internet', 499.9]]);
     assert.equal(claro[2].precoPromo, 159.9, 'combo: internet + celular com preço de combo');
+    assert.ok(catalogo.todos().every((p) => Number.isInteger(p.preco * 100 + 1e-6) || Math.abs(p.preco * 100 - Math.round(p.preco * 100)) < 1e-6), 'preços arredondados a centavos');
     assert.ok(claro.every((p) => p.streaming.includes('globoplay')));
     const nio = todos.filter((p) => p.operadoraId === 'nio');
     assert.deepEqual(nio.map((p) => [p.nome, p.preco, p.streaming.join(), p.mesesStreaming]), [['Nio Fibra 600 Mega', 110, '', null], ['Nio Essencial 800 Mega + Chip 5G', 140, '', null], ['Nio Super 1 Giga + Globoplay + Chip 5G', 170, 'globoplay', 12], ['Nio Ultra 1 Giga + Globoplay + Chip 5G', 200, 'globoplay', 12]]);
