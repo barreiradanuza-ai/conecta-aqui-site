@@ -116,8 +116,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     <span style="background:#fff;border-radius:10px;padding:3px;display:inline-flex"><img src="/images/logo-oficial-240.png" alt="Conecta Aqui" style="height:40px;width:auto"></span><b style="color:#9fb6d6;font-weight:600">Painel</b>
     <nav class="abas" id="abas">
       <button data-aba="trafego" class="ativa">Tráfego</button>
-      <button data-aba="planos">Planos</button>
-      <button data-aba="ofertas">Ofertas das operadoras <span id="badgeMon" class="pill oculto" style="background:#ffe7c2;color:#8a5300">!</span></button>
+      <button data-aba="planos">Planos <span id="badgeSync" class="pill oculto" style="background:#fdecec;color:#c62828">!</span></button>
       <button data-aba="slides">Slides</button>
       <button data-aba="operadoras">Operadoras</button>
       <button data-aba="contatos">Contatos</button>
@@ -178,31 +177,28 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       </div>
     </div>
 
-    <!-- PLANOS -->
+    <!-- PLANOS (catálogo sincronizado) -->
     <div data-painel="planos" class="oculto">
+      <div class="card">
+        <div class="barra"><h2 style="margin:0">Sincronização com as operadoras</h2><span class="esp"></span><button class="btn prim" id="btnSync">Sincronizar agora</button></div>
+        <p class="dica">Os planos e preços vêm direto dos sites das operadoras (TIM: tabela de planos do site; Claro: catálogo por cidade; Nio e Vivo: página de ofertas) e são atualizados a cada 6 horas. Se um site falhar, os últimos preços lidos dele continuam valendo. A Claro tem preço por cidade: a vitrine usa o Rio de Janeiro e a busca por CEP usa a cidade do cliente.</p>
+        <div id="syncStatus" class="conex"></div>
+      </div>
       <div class="card">
         <div class="barra">
           <h2 style="margin:0">Planos</h2>
           <input class="busca" id="filtroPlano" placeholder="Filtrar por nome…">
           <select id="filtroOp" style="max-width:180px"></select>
+          <label class="chk" style="font-size:.85rem"><input type="checkbox" id="soDestaques"> Só destaques</label>
           <span class="esp"></span>
-          <button class="btn claro" id="btnExportar">Exportar planilha</button>
-          <button class="btn claro" id="btnImportar">Importar planilha</button>
-          <button class="btn prim" id="btnNovo">+ Novo plano</button>
+          <button class="btn prim" id="salvarCuradoria">Salvar escolhas</button>
         </div>
+        <p class="dica"><b>Destaque</b>: aparece em "Ofertas do mês" na home e primeiro nos resultados. <b>Ocultar</b>: não aparece no site. <b>Preço promo Nio</b>: valor cobrado nas cidades promocionais da Nio (lista "cidades promo Claro" do MCC); em branco, vale o preço do site da Nio.</p>
+        <label class="chk" style="margin-bottom:12px"><input type="checkbox" id="nioEmAreaPromo"> Nas cidades promocionais, mostrar a Nio mesmo quando o CEP não está na lista de CEPs da Nio</label>
         <div class="tab-wrap"><table>
-          <thead><tr><th>Operadora</th><th>Plano</th><th>Tipo</th><th>Velocidade</th><th>Preço</th><th>Promo</th><th>Status</th><th>Atualizado</th><th></th></tr></thead>
+          <thead><tr><th>Operadora</th><th>Plano</th><th>Tipo</th><th>Velocidade</th><th>Preço</th><th>Promo</th><th>Região</th><th>Destaque</th><th>Preço promo Nio</th><th>Ocultar</th></tr></thead>
           <tbody id="tabPlanos"></tbody>
         </table></div>
-      </div>
-    </div>
-
-    <!-- OFERTAS DAS OPERADORAS (monitor) -->
-    <div data-painel="ofertas" class="oculto">
-      <div class="card">
-        <div class="barra"><h2 style="margin:0">Ofertas nos sites das operadoras</h2><span class="esp"></span><button class="btn prim" id="monVerificar">Verificar agora</button></div>
-        <p class="dica">A cada 12 horas o sistema lê as páginas de ofertas das operadoras (configuradas na aba Operadoras) e lista as velocidades, preços e streamings encontrados. Quando algo muda, aparece um aviso aqui. Nada muda no site sozinho: confira e use "Criar plano" para cadastrar ou atualize o plano existente. A leitura é automática e pode trazer repetições; confirme sempre no site da operadora.</p>
-        <div id="listaMon"></div>
       </div>
     </div>
 
@@ -219,7 +215,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     <div data-painel="operadoras" class="oculto">
       <div class="card">
         <h2>Operadoras</h2>
-        <p class="dica"><b>Logo:</b> clique no quadro para enviar o logo oficial (PNG, JPG ou WEBP, fundo transparente ou branco). Use os logos fornecidos pela operadora no seu kit de parceiro. <b>Site de ofertas:</b> página que o monitor confere a cada 12 horas. "Cobertura" diz de onde vem a lista de CEPs: <b>mcc:ceps-claro</b>, <b>mcc:ceps-nio</b> e <b>mcc:ceps-tim</b> vêm do app Minha Casa Conectada. Use <b>todas</b> para quem atende qualquer CEP e <b>nenhuma</b> para esconder dos resultados.</p>
+        <p class="dica"><b>Logo:</b> clique no quadro para enviar o logo oficial (PNG, JPG ou WEBP, fundo transparente ou branco). Use os logos fornecidos pela operadora no seu kit de parceiro. Os planos e preços de Claro, TIM, Nio e Vivo são sincronizados automaticamente (aba Planos). "Cobertura" diz de onde vem a lista de CEPs: <b>mcc:ceps-claro</b>, <b>mcc:ceps-nio</b> e <b>mcc:ceps-tim</b> vêm do app Minha Casa Conectada. Use <b>todas</b> para quem atende qualquer CEP e <b>nenhuma</b> para esconder dos resultados.</p>
         <div id="listaOps"></div>
         <div class="barra" style="margin-top:12px">
           <button class="btn claro" id="addOp">+ Adicionar operadora</button><span class="esp"></span>
@@ -273,50 +269,6 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   </main>
 </section>
 
-<!-- FORM PLANO -->
-<dialog id="dlgPlano">
-  <form class="form" id="formPlano">
-    <h3 id="dlgTitulo">Novo plano</h3>
-    <div class="g2">
-      <label>Operadora<select name="operadoraId" required></select></label>
-      <label>Tipo<select name="tipo"><option value="internet">Internet residencial</option><option value="combo-tv">Internet + TV</option><option value="combo-movel">Internet + Celular</option><option value="combo-completo">Combo completo (Internet + TV + Celular)</option><option value="movel">Só celular</option><option value="tv">Só TV</option></select></label>
-    </div>
-    <label>Nome do plano<input name="nome" required maxlength="100" placeholder="Ex.: Fibra 500 Mega"></label>
-    <div class="g2">
-      <label>Velocidade (Mega)<input name="velocidadeMbps" inputmode="numeric" placeholder="500"></label>
-      <label>Preço (R$/mês)<input name="preco" inputmode="decimal" required placeholder="119,90"></label>
-      <label>Preço promocional<input name="precoPromo" inputmode="decimal" placeholder="opcional"></label>
-      <label>Promoção por (meses)<input name="mesesPromo" inputmode="numeric" placeholder="opcional"></label>
-    </div>
-    <div><b style="font-size:.85rem">Streaming incluso</b>
-      <div class="streams-chk" id="chkStreams"></div>
-      <label style="max-width:220px;margin-top:8px">Streaming incluso por (meses)<input name="mesesStreaming" inputmode="numeric" placeholder="vazio = sem prazo"></label>
-    </div>
-    <label>Benefícios (um por linha)<textarea name="beneficios" rows="3" placeholder="Wi-Fi incluso&#10;Instalação grátis"></textarea></label>
-    <label>Link de contratação (opcional)<input name="linkContratacao" placeholder="https://…"></label>
-    <div class="g2">
-      <label>Ordem<input name="ordem" inputmode="numeric" placeholder="0"></label>
-      <label class="chk"><input type="checkbox" name="destaque"> Destaque</label>
-      <label class="chk"><input type="checkbox" name="ativo" checked> Ativo no site</label>
-      <label class="chk"><input type="checkbox" name="apenasCidadePromo"> Só em cidades promo Claro</label>
-    </div>
-    <p class="msg erro oculto" id="planoErro"></p>
-    <div class="acoes"><button type="button" class="btn claro" id="cancelarPlano">Cancelar</button><button class="btn prim">Salvar</button></div>
-  </form>
-</dialog>
-
-<!-- IMPORTAR -->
-<dialog id="dlgImportar">
-  <form class="form" id="formImportar">
-    <h3>Importar planilha de planos</h3>
-    <p class="dica">Salve a planilha como <b>CSV</b> (no Excel: Arquivo → Salvar como → CSV). Dica: exporte primeiro, edite e importe de volta. Linhas com <b>id</b> atualizam o plano existente; linhas sem id criam planos novos. Colunas: operadoraId, nome, tipo, velocidadeMbps, preco, precoPromo, mesesPromo, beneficios (separe com |), streaming (globoplay, paramount, max, netflix, youtube, disney, prime, deezer, apple; separe com |), mesesStreaming, tipo (internet, combo-tv, combo-movel, combo-completo), destaque, ativo, apenasCidadePromo, linkContratacao, ordem.</p>
-    <input type="file" name="arquivo" accept=".csv,text/csv" required>
-    <label class="chk"><input type="checkbox" name="substituir"> Apagar todos os planos atuais e usar só os da planilha</label>
-    <div id="impErro" class="msg erro oculto"></div>
-    <div class="acoes"><button type="button" class="btn claro" id="cancelarImp">Cancelar</button><button class="btn prim">Importar</button></div>
-  </form>
-</dialog>
-
 <dialog id="dlgScript"><div class="form"><h2>Script do Google Ads</h2>
 <ol class="dica" style="margin:0;padding-left:18px;line-height:1.6">
 <li>No Google Ads, abra <b>Ferramentas → Ações em massa → Scripts</b> e clique em <b>+</b> (Novo script).</li>
@@ -332,9 +284,8 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const brl = (n) => (n == null ? '—' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
   const TIPOS = { internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
-  let planos = [], operadoras = [], editando = null;
+  let planos = [], operadoras = [], curadoria = { destaques: {}, promoNio: {}, ocultos: {}, nioEmAreaPromo: true }, syncStatus = {}, regiaoPadraoClaro = '';
   const STREAMS = { globoplay: 'Globoplay', paramount: 'Paramount+', max: 'Max', netflix: 'Netflix', youtube: 'YouTube Premium', disney: 'Disney+', prime: 'Prime Video', deezer: 'Deezer', apple: 'Apple TV+' };
-  $('#chkStreams').innerHTML = Object.entries(STREAMS).map(([k, n]) => `<label class="chk"><input type="checkbox" name="st_${k}"> ${n}</label>`).join('');
 
   async function api(caminho, opts = {}) {
     const r = await fetch('/admin/api' + caminho, { ...opts, headers: { 'x-requested-with': 'painel', ...(opts.body && typeof opts.body === 'string' && !opts.csv ? { 'content-type': 'application/json' } : {}), ...(opts.headers || {}) } });
@@ -362,7 +313,6 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     if (b.dataset.aba === 'trafego') carregarTrafego();
     if (b.dataset.aba === 'contatos') carregarContatos();
     if (b.dataset.aba === 'slides') carregarSlides();
-    if (b.dataset.aba === 'ofertas') carregarMon();
   }));
 
   async function iniciar() {
@@ -371,7 +321,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       $('#telaLogin').classList.add('oculto'); $('#telaPainel').classList.remove('oculto');
       $('#avisoDemo').classList.toggle('oculto', !st.modoDemo);
       carregarTrafego().catch(() => {});
-      await carregarOperadoras(); await carregarPlanos(); carregarMon().catch(() => {});
+      await carregarOperadoras(); await carregarPlanos();
     } catch { mostrarLogin(); }
   }
 
@@ -514,77 +464,69 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     });
   }
 
-  // ---------- planos ----------
-  async function carregarPlanos() { planos = await api('/planos'); renderPlanos(); }
-  function nomeOp(id) { return operadoras.find((o) => o.id === id)?.nome || id; }
+  // ---------- planos (catálogo sincronizado) ----------
+  const NOME_OP_SYNC = { tim: 'TIM', claro: 'Claro', nio: 'Nio', vivo: 'Vivo' };
+  async function carregarPlanos() {
+    const r = await api('/catalogo');
+    planos = r.planos; curadoria = r.curadoria; syncStatus = r.status; regiaoPadraoClaro = r.regiaoPadraoClaro;
+    $('#nioEmAreaPromo').checked = curadoria.nioEmAreaPromo !== false;
+    renderSync(); renderPlanos();
+  }
+  function nomeOp(id) { return operadoras.find((o) => o.id === id)?.nome || NOME_OP_SYNC[id] || id; }
   function corOp(id) { return operadoras.find((o) => o.id === id)?.cor || '#999'; }
+  const quandoTxt = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : 'nunca');
+  function renderSync() {
+    const st = syncStatus || {}; const ops = st.operadoras || {}; let erros = 0;
+    $('#syncStatus').innerHTML = ['tim', 'claro', 'nio', 'vivo'].map((id) => {
+      const o = ops[id]; if (o && o.ok === false) erros++;
+      return `<div><b>${esc(nomeOp(id))}</b><div class="${!o ? 'dica' : o.ok ? 'ok-txt' : 'ruim-txt'}">${!o ? '● ainda não sincronizada' : o.ok ? `● ${o.quantidade} planos lidos` : '● falhou: ' + esc(o.erro || '')}</div>
+        <div class="dica">Última leitura: ${quandoTxt(o && o.verificadoEm)}${o && !o.ok && o.sucessoEm ? `<br>Usando preços de ${quandoTxt(o.sucessoEm)}` : ''}${o && o.mudouEm ? `<br>Planos mudaram em ${quandoTxt(o.mudouEm)}` : ''}</div>
+        <button class="btn claro" type="button" data-sync-op="${id}" style="margin-top:8px">Sincronizar ${esc(nomeOp(id))}</button></div>`;
+    }).join('') + (st.rodando ? '<div class="dica">Sincronização em andamento…</div>' : '');
+    $('#badgeSync').classList.toggle('oculto', !erros);
+    $$('[data-sync-op]').forEach((b) => b.addEventListener('click', () => sincronizar(b.dataset.syncOp)));
+  }
+  async function sincronizar(op) {
+    const btn = $('#btnSync'); btn.disabled = true; btn.textContent = 'Sincronizando… (até 1 minuto)';
+    try { await api('/catalogo/sincronizar' + (op ? '?operadora=' + encodeURIComponent(op) : ''), { method: 'POST' }); await carregarPlanos(); flash('Sincronização concluída.'); }
+    catch (er) { flash(er.message, 'erro'); }
+    btn.disabled = false; btn.textContent = 'Sincronizar agora';
+  }
+  $('#btnSync').addEventListener('click', () => sincronizar());
+  const regiaoTxt = (p) => (!p.regiao || p.regiao === 'br' ? 'Brasil' : p.regiao === 'sp' ? 'São Paulo' : p.regiao.replace('/', ' · ').replace(/_/g, ' '));
   function renderPlanos() {
-    const f = $('#filtroPlano').value.toLowerCase(), fo = $('#filtroOp').value;
-    const lista = planos.filter((p) => (!f || p.nome.toLowerCase().includes(f)) && (!fo || p.operadoraId === fo))
-      .sort((a, b) => nomeOp(a.operadoraId).localeCompare(nomeOp(b.operadoraId)) || a.ordem - b.ordem);
-    $('#tabPlanos').innerHTML = lista.map((p) => `<tr class="${p.ativo ? '' : 'inativo'}">
+    const f = $('#filtroPlano').value.toLowerCase(), fo = $('#filtroOp').value, sd = $('#soDestaques').checked;
+    const porId = new Map();
+    for (const p of planos) { const x = porId.get(p.id); if (x) x.regioes.push(regiaoTxt(p)); else porId.set(p.id, { ...p, regioes: [regiaoTxt(p)] }); }
+    const lista = [...porId.values()].filter((p) => (!f || p.nome.toLowerCase().includes(f)) && (!fo || p.operadoraId === fo) && (!sd || curadoria.destaques[p.id]))
+      .sort((a, b) => nomeOp(a.operadoraId).localeCompare(nomeOp(b.operadoraId)) || regiaoTxt(a).localeCompare(regiaoTxt(b)) || (a.velocidadeMbps || 0) - (b.velocidadeMbps || 0) || (a.preco - b.preco));
+    $('#tabPlanos').innerHTML = lista.map((p) => `<tr class="${curadoria.ocultos[p.id] ? 'inativo' : ''}">
       <td><span class="bola" style="background:${esc(corOp(p.operadoraId))}"></span>${esc(nomeOp(p.operadoraId))}</td>
-      <td><b>${esc(p.nome)}</b>${p.destaque ? ' <span class="pill">destaque</span>' : ''}${p.apenasCidadePromo ? ' <span class="pill cinza">cidade promo</span>' : ''}${(p.streaming || []).map((k) => ` <span class="pill" style="background:#f3eefe;color:#5b21b6">${esc(STREAMS[k] || k)}</span>`).join('')}</td>
+      <td><b>${esc(p.nome)}</b>${p.selo ? ` <span class="pill cinza">${esc(p.selo)}</span>` : ''}${(p.streaming || []).map((k) => ` <span class="pill" style="background:#f3eefe;color:#5b21b6">${esc(STREAMS[k] || k)}</span>`).join('')}<br><small class="dica">${esc((p.beneficios || []).join(' · '))}</small></td>
       <td>${esc(TIPOS[p.tipo] || p.tipo)}</td>
-      <td>${p.velocidadeMbps ? esc(p.velocidadeMbps) + ' Mega' : '—'}</td>
-      <td>${brl(p.preco)}</td>
+      <td>${p.velocidadeMbps ? (p.velocidadeMbps >= 1000 ? p.velocidadeMbps / 1000 + ' Giga' : p.velocidadeMbps + ' Mega') : '—'}</td>
+      <td>${brl(p.preco)}${p.regioes.length > 1 ? '<br><small class="dica">na 1ª região</small>' : ''}</td>
       <td>${p.precoPromo != null ? brl(p.precoPromo) + (p.mesesPromo ? ` · ${esc(p.mesesPromo)}m` : '') : '—'}</td>
-      <td><span class="pill ${p.ativo ? '' : 'cinza'}">${p.ativo ? 'ativo' : 'inativo'}</span></td>
-      <td>${new Date(p.atualizadoEm).toLocaleDateString('pt-BR')}</td>
-      <td style="white-space:nowrap"><button class="btn claro" data-editar="${esc(p.id)}">Editar</button> <button class="btn perigo" data-remover="${esc(p.id)}">Remover</button></td>
-    </tr>`).join('') || '<tr><td colspan="9" class="dica">Nenhum plano. Clique em "+ Novo plano".</td></tr>';
-    $$('[data-editar]').forEach((b) => b.addEventListener('click', () => abrirPlano(planos.find((p) => p.id === b.dataset.editar))));
-    $$('[data-remover]').forEach((b) => b.addEventListener('click', async () => {
-      const p = planos.find((x) => x.id === b.dataset.remover);
-      if (!confirm(`Remover o plano "${p.nome}"? Para só tirar do site, use "Ativo no site".`)) return;
-      await api('/planos/' + p.id, { method: 'DELETE' }); flash('Plano removido.'); carregarPlanos();
-    }));
+      <td><small>${esc(p.regioes.join(', '))}</small></td>
+      <td><input type="checkbox" data-destaque="${esc(p.id)}" ${curadoria.destaques[p.id] ? 'checked' : ''}></td>
+      <td>${p.operadoraId === 'nio' ? `<input data-promo-nio="${esc(p.id)}" inputmode="decimal" placeholder="ex.: 95,00" value="${curadoria.promoNio[p.id] != null ? esc(String(curadoria.promoNio[p.id]).replace('.', ',')) : ''}" style="max-width:110px">` : '<span class="dica">—</span>'}</td>
+      <td><input type="checkbox" data-oculto="${esc(p.id)}" ${curadoria.ocultos[p.id] ? 'checked' : ''}></td>
+    </tr>`).join('') || '<tr><td colspan="10" class="dica">Nenhum plano ainda. Clique em "Sincronizar agora".</td></tr>';
   }
   $('#filtroPlano').addEventListener('input', renderPlanos);
   $('#filtroOp').addEventListener('change', renderPlanos);
-
-  const fP = $('#formPlano');
-  function abrirPlano(p, prefill) {
-    editando = p || null;
-    $('#dlgTitulo').textContent = p ? 'Editar plano' : 'Novo plano';
-    fP.reset(); $('#planoErro').classList.add('oculto');
-    fP.operadoraId.innerHTML = operadoras.map((o) => `<option value="${esc(o.id)}">${esc(o.nome)}${o.ativo ? '' : ' (inativa)'}</option>`).join('');
-    const v = p || prefill || { ativo: true, tipo: 'internet' };
-    for (const k of ['operadoraId', 'tipo', 'nome', 'velocidadeMbps', 'mesesPromo', 'mesesStreaming', 'linkContratacao', 'ordem']) if (v[k] != null) fP[k].value = v[k];
-    for (const k of Object.keys(STREAMS)) fP['st_' + k].checked = (v.streaming || []).includes(k);
-    for (const k of ['preco', 'precoPromo']) if (v[k] != null) fP[k].value = String(v[k]).replace('.', ',');
-    fP.beneficios.value = (v.beneficios || []).join('\n');
-    for (const k of ['destaque', 'ativo', 'apenasCidadePromo']) fP[k].checked = !!v[k];
-    $('#dlgPlano').showModal();
-  }
-  $('#btnNovo').addEventListener('click', () => abrirPlano());
-  $('#cancelarPlano').addEventListener('click', () => $('#dlgPlano').close());
-  fP.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const d = Object.fromEntries(['operadoraId', 'tipo', 'nome', 'velocidadeMbps', 'preco', 'precoPromo', 'mesesPromo', 'mesesStreaming', 'linkContratacao', 'ordem'].map((k) => [k, fP[k].value]));
-    d.streaming = Object.keys(STREAMS).filter((k) => fP['st_' + k].checked);
-    d.beneficios = fP.beneficios.value.split('\n'); d.destaque = fP.destaque.checked; d.ativo = fP.ativo.checked; d.apenasCidadePromo = fP.apenasCidadePromo.checked;
-    try {
-      await api(editando ? '/planos/' + editando.id : '/planos', { method: editando ? 'PUT' : 'POST', body: JSON.stringify(d) });
-      $('#dlgPlano').close(); flash(editando ? 'Plano atualizado.' : 'Plano criado.'); carregarPlanos();
-    } catch (err) { const m = $('#planoErro'); m.textContent = err.message; m.classList.remove('oculto'); }
+  $('#soDestaques').addEventListener('change', renderPlanos);
+  // os checkboxes e campos alteram a curadoria em memória; "Salvar escolhas" grava
+  $('#tabPlanos').addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.dataset.destaque) { if (t.checked) curadoria.destaques[t.dataset.destaque] = true; else delete curadoria.destaques[t.dataset.destaque]; }
+    if (t.dataset.oculto) { if (t.checked) curadoria.ocultos[t.dataset.oculto] = true; else delete curadoria.ocultos[t.dataset.oculto]; }
+    if (t.dataset.promoNio) { const v = t.value.trim(); if (v) curadoria.promoNio[t.dataset.promoNio] = v; else delete curadoria.promoNio[t.dataset.promoNio]; }
   });
-
-  // ---------- importar / exportar ----------
-  $('#btnExportar').addEventListener('click', () => { location.href = '/admin/api/planos/exportar'; });
-  $('#btnImportar').addEventListener('click', () => { $('#formImportar').reset(); $('#impErro').classList.add('oculto'); $('#dlgImportar').showModal(); });
-  $('#cancelarImp').addEventListener('click', () => $('#dlgImportar').close());
-  $('#formImportar').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const arq = e.target.arquivo.files[0]; if (!arq) return;
-    const substituir = e.target.substituir.checked;
-    if (substituir && !confirm('Isso apaga TODOS os planos atuais e deixa só os da planilha. Continuar?')) return;
-    try {
-      const r = await api('/planos/importar?modo=' + (substituir ? 'substituir' : 'mesclar'), { method: 'POST', body: await arq.text(), csv: true, headers: { 'content-type': 'text/csv' } });
-      $('#dlgImportar').close(); flash(`Importado: ${r.criados} novos, ${r.atualizados} atualizados.`); carregarPlanos();
-    } catch (err) {
-      const m = $('#impErro'); m.innerHTML = esc(err.message) + (err.detalhes ? '<br>' + err.detalhes.map(esc).join('<br>') : ''); m.classList.remove('oculto');
-    }
+  $('#nioEmAreaPromo').addEventListener('change', (e) => { curadoria.nioEmAreaPromo = e.target.checked; });
+  $('#salvarCuradoria').addEventListener('click', async () => {
+    try { curadoria = await api('/curadoria', { method: 'PUT', body: JSON.stringify(curadoria) }); renderPlanos(); flash('Escolhas salvas. Já estão no site.'); }
+    catch (er) { flash(er.message, 'erro'); }
   });
 
   // ---------- operadoras ----------
@@ -600,7 +542,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       <label>Nome<input name="nome" value="${esc(o.nome)}"></label>
       <label>Cor<input type="color" name="cor" value="${esc(o.cor || '#0f3a89')}"></label>
       <label>Cobertura<input name="cobertura" value="${esc(o.cobertura || 'nenhuma')}" list="listasCob"></label>
-      <label>Site de ofertas<input name="siteOfertas" value="${esc(o.siteOfertas || '')}" placeholder="https://…"></label>
+      <label>Sincronização<input value="${['tim', 'claro', 'nio', 'vivo'].includes(o.id) ? 'automática (site da operadora)' : 'não disponível'}" disabled></label>
       <label>Link de contratação<input name="linkContratacao" value="${esc(o.linkContratacao || '')}" placeholder="opcional"></label>
       <label class="chk"><input type="checkbox" name="ativo" ${o.ativo !== false ? 'checked' : ''}> Ativa</label>
       <button type="button" class="btn perigo" data-rm title="Remover">×</button>
@@ -629,12 +571,14 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
   }
   $('#addOp').addEventListener('click', () => { $('#listaOps').insertAdjacentHTML('afterbegin', linhaOp({ nome: '', cobertura: 'nenhuma', ativo: true })); ligarLinhasOp(); });
   $('#salvarOps').addEventListener('click', async () => {
-    const lista = $$('#listaOps .ops-linha').map((l) => ({ id: l.dataset.id || undefined, nome: $('[name=nome]', l).value, cor: $('[name=cor]', l).value, cobertura: $('[name=cobertura]', l).value.trim(), logoUrl: $('[name=logoUrl]', l).value.trim(), siteOfertas: $('[name=siteOfertas]', l).value.trim(), linkContratacao: $('[name=linkContratacao]', l).value.trim(), ativo: $('[name=ativo]', l).checked }));
+    const lista = $$('#listaOps .ops-linha').map((l) => ({ id: l.dataset.id || undefined, nome: $('[name=nome]', l).value, cor: $('[name=cor]', l).value, cobertura: $('[name=cobertura]', l).value.trim(), logoUrl: $('[name=logoUrl]', l).value.trim(), linkContratacao: $('[name=linkContratacao]', l).value.trim(), ativo: $('[name=ativo]', l).checked }));
     try { await api('/operadoras', { method: 'PUT', body: JSON.stringify(lista) }); flash('Operadoras salvas.'); await carregarOperadoras(); renderPlanos(); }
     catch (err) { flash(err.message, 'erro'); }
   });
 
   // ---------- slides ----------
+  // planos elegíveis para o banner: os das regiões padrão (vitrine), sem repetir
+  const planosParaSlide = () => planos.filter((p, i, a) => !curadoria.ocultos[p.id] && (!p.regiao || p.regiao === 'br' || p.regiao === regiaoPadraoClaro) && a.findIndex((x) => x.id === p.id) === i).sort((a, b) => nomeOp(a.operadoraId).localeCompare(nomeOp(b.operadoraId)) || a.preco - b.preco);
   const IMAGENS_PADRAO = ['/images/banner-persona.webp', '/images/persona-meio.webp'];
   const ABAS = { todos: 'Todos', internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo' };
   function edSlide(x) {
@@ -645,7 +589,7 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
         <div class="g2">
           <label>Selo (texto pequeno acima)<input name="selo" value="${esc(x.selo || '')}" maxlength="50"></label>
           <label>Visual do slide<select name="visual"><option value="persona" ${x.visual !== 'plano' ? 'selected' : ''}>Foto da persona</option><option value="plano" ${x.visual === 'plano' ? 'selected' : ''}>Cartão de promoção (plano)</option></select></label>
-          <label data-so="plano">Plano em destaque<select name="planoId"><option value="">${x.filtro ? 'Automático (' + esc(x.filtro) + ')' : 'Escolha um plano'}</option>${planos.filter((p) => p.ativo).map((p) => `<option value="${esc(p.id)}" ${p.id === x.planoId ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>
+          <label data-so="plano">Plano em destaque<select name="planoId"><option value="">${x.filtro ? 'Automático (' + esc(x.filtro) + ')' : 'Escolha um plano'}</option>${planosParaSlide().map((p) => `<option value="${esc(p.id)}" ${p.id === x.planoId ? 'selected' : ''}>${esc(nomeOp(p.operadoraId))} · ${esc(p.nome)} · ${brl(p.precoPromo ?? p.preco)}</option>`).join('')}</select></label>
           <label data-so="persona">Foto<select name="imagem">${opcoesImg}</select></label>
           <label data-so="persona">Enviar outra foto<input type="file" accept="image/png,image/jpeg,image/webp" data-foto></label>
         </div>
@@ -686,46 +630,6 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     const lista = $$('#listaSlides .slide-ed').map((el) => ({ selo: $('[name=selo]', el).value, titulo: $('[name=titulo]', el).value, subtitulo: $('[name=subtitulo]', el).value, imagem: $('[name=imagem]', el).value, visual: $('[name=visual]', el).value, planoId: $('[name=planoId]', el).value, filtro: el.dataset.filtro || '', ativo: $('[name=ativo]', el).checked }));
     try { await api('/slides', { method: 'PUT', body: JSON.stringify(lista) }); flash('Slides salvos. Já estão no site.'); carregarSlides(); }
     catch (er) { flash(er.message, 'erro'); }
-  });
-
-  // ---------- monitor de ofertas ----------
-  const STREAM_MAP = { globoplay: 'globoplay', 'paramount+': 'paramount', paramount: 'paramount', max: 'max', 'hbo max': 'max', netflix: 'netflix', 'youtube premium': 'youtube', 'disney+': 'disney', disney: 'disney', 'prime video': 'prime', deezer: 'deezer', 'apple tv+': 'apple', 'apple tv': 'apple' };
-  let monDados = {};
-  function renderMon() {
-    const ops = Object.fromEntries(operadoras.map((o) => [o.id, o]));
-    const ids = Object.keys(monDados);
-    let mudou = 0;
-    $('#listaMon').innerHTML = ids.length ? ids.map((id) => {
-      const m = monDados[id]; const novo = m.hash && m.hash !== m.revisadoHash; if (novo) mudou++;
-      return `<div class="mon">
-        <h3>${esc(ops[id]?.nome || id)}
-          ${m.ok === false ? `<span class="pill" style="background:#fdecec;color:#c62828">erro: ${esc(m.erro)}</span>` : novo ? '<span class="pill" style="background:#ffe7c2;color:#8a5300">mudou, revisar</span>' : '<span class="pill">sem mudanças</span>'}
-          <small class="dica" style="font-weight:400">verificado em ${m.verificadoEm ? new Date(m.verificadoEm).toLocaleString('pt-BR') : '—'}</small>
-          <span class="esp"></span>
-          <a class="btn claro" href="${esc(m.url || '#')}" target="_blank" rel="noopener">Abrir site</a>
-          ${novo ? `<button class="btn prim" data-revisado="${esc(id)}">Marcar como revisado</button>` : ''}
-        </h3>
-        ${m.vazio ? '<p class="dica">Nenhuma oferta encontrada no texto da página. O site pode montar os preços só no navegador; confira manualmente.</p>' : ''}
-        ${(m.ofertas || []).length ? `<div class="tab-wrap"><table><thead><tr><th>Velocidade</th><th>Preços encontrados</th><th>Streaming citado</th><th>Trecho</th><th></th></tr></thead><tbody>
-          ${m.ofertas.map((o, i) => `<tr><td><b>${o.velocidadeMbps >= 1000 ? o.velocidadeMbps / 1000 + ' Giga' : o.velocidadeMbps + ' Mega'}</b></td><td>${o.precos.map(brl).join(' · ')}</td><td>${esc(o.streaming.join(', ')) || '—'}</td><td><small>${esc(o.trecho || '')}</small></td><td><button class="btn claro" data-criar="${esc(id)}:${i}">Criar plano</button></td></tr>`).join('')}
-        </tbody></table></div>` : ''}
-      </div>`;
-    }).join('') : '<p class="dica">Ainda não houve verificação. Clique em "Verificar agora".</p>';
-    $('#badgeMon').classList.toggle('oculto', !mudou);
-    $$('[data-revisado]').forEach((b) => b.addEventListener('click', async () => { await api('/monitor/' + b.dataset.revisado + '/revisado', { method: 'POST' }); carregarMon(); }));
-    $$('[data-criar]').forEach((b) => b.addEventListener('click', () => {
-      const [id, i] = b.dataset.criar.split(':'); const o = monDados[id].ofertas[+i];
-      const ord = [...o.precos].sort((a, c) => a - c);
-      abrirPlano(null, { operadoraId: id, tipo: 'internet', nome: `${ops[id]?.nome || id} ${o.velocidadeMbps >= 1000 ? o.velocidadeMbps / 1000 + ' Giga' : o.velocidadeMbps + ' Mega'}`, velocidadeMbps: o.velocidadeMbps,
-        preco: ord.length > 1 ? ord[ord.length - 1] : ord[0], precoPromo: ord.length > 1 ? ord[0] : null, streaming: o.streaming.map((x) => STREAM_MAP[x]).filter(Boolean), ativo: true });
-    }));
-  }
-  async function carregarMon() { monDados = await api('/monitor'); renderMon(); }
-  $('#monVerificar').addEventListener('click', async (e) => {
-    e.target.disabled = true; e.target.textContent = 'Verificando… (até 1 minuto)';
-    try { monDados = await api('/monitor/verificar', { method: 'POST' }); renderMon(); flash('Verificação concluída.'); }
-    catch (er) { flash(er.message, 'erro'); }
-    e.target.disabled = false; e.target.textContent = 'Verificar agora';
   });
 
   // ---------- contatos ----------

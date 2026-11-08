@@ -30,11 +30,26 @@ const mcc = http.createServer((req, res) => {
     });
     return;
   }
-  if (u.pathname === '/oferta-tim') {
-    res.setHeader('content-type', 'text/html; charset=utf-8');
-    return res.end(`<html><body><script>var x="999 MEGA R$ 1,00"</script><div class="card"><h3>500 MEGA</h3><p>de R$ 129,99 por <b>R$&nbsp;89,99</b>/mês</p><li>Wi-Fi grátis</li></div>
-      <div class="card"><h3>600 MEGA</h3><p>Com Paramount+ incluso</p><p>R$ 149,99 por R$ 109,99</p></div><div><h3>1 GIGA</h3><p>R$ ${global.precoGiga || '199,99'}</p></div></body></html>`);
+  // ---- sites das operadoras (fixtures reais, nov/2026) ----
+  const fx = (n) => fs.readFileSync(path.join(__dirname, 'fixtures', n));
+  if (u.pathname === '/json/plans.json' || u.pathname === '/json/sp.json') {
+    if (global.timFora) { res.statusCode = 503; return res.end('indisponivel'); }
+    res.setHeader('content-type', 'application/json');
+    // a tabela de SP tem um plano exclusivo mais barato
+    return res.end(u.pathname.endsWith('sp.json') ? fx('tim-plans.json').toString().replace('"sku":"d500a"', '"sku":"d400n"').replace('"plan":"500 MEGA","plan_download":"500 Mbps"', '"plan":"400 MEGA","plan_download":"400 Mbps"') : fx('tim-plans.json'));
   }
+  if (u.pathname === '/internet') { res.setHeader('content-type', 'text/html'); return res.end(fx('claro-internet.html')); }
+  if (u.pathname === '/multi') { res.setHeader('content-type', 'text/html'); return res.end('<html><body>sem next data</body></html>'); }
+  if (u.pathname === '/api/catalog') {
+    global.claroChamadas = (global.claroChamadas || []).concat(u.searchParams.get('state') + '/' + u.searchParams.get('city'));
+    if (!u.searchParams.get('uuids')) { res.statusCode = 400; return res.end('{"data":[],"error":"Missing parameters"}'); }
+    let j = fx('claro-catalog.json').toString();
+    if (u.searchParams.get('city') === 'sao_paulo') j = j.replace('"preco":8990,"precoDe":8990', '"preco":7990,"precoDe":7990');
+    if (u.searchParams.get('city') === 'cidade_sem_claro') { res.statusCode = 500; return res.end('erro'); }
+    res.setHeader('content-type', 'application/json'); return res.end(j);
+  }
+  if (u.pathname === '/') { res.setHeader('content-type', 'text/html'); return res.end(fx('nio-home.html')); }
+  if (u.pathname === '/para-voce/produtos-e-servicos/para-casa/internet') { res.setHeader('content-type', 'text/html'); return res.end(fx('vivo-internet.html')); }
   const m = u.pathname.match(/^\/api\/mcc\/admin\/([a-z-]+)$/);
   if (m) {
     if (!/session-token=tok\d+/.test(ck)) { res.statusCode = 401; return res.end(JSON.stringify({ error: 'Não autenticado' })); }
@@ -111,7 +126,8 @@ const mcc = http.createServer((req, res) => {
   process.env.MCC_PASSWORD = 'segredo';
   process.env.ADMIN_PASSWORD = 'admin123';
   process.env.WHATSAPP_NUMBER = '5521900000000';
-  process.env.MANTER_EXEMPLOS = '1';
+  for (const k of ['TIM_BASE_URL', 'CLARO_BASE_URL', 'NIO_BASE_URL', 'VIVO_BASE_URL']) process.env[k] = process.env.MCC_BASE_URL;
+  process.env.SYNC_OFERTAS = 'off';
   process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ca-'));
 
   // ViaCEP falso (o real fica bloqueado no ambiente de teste)
@@ -122,6 +138,9 @@ const mcc = http.createServer((req, res) => {
 
   const servidor = require('../server');
   await new Promise((r) => servidor.listen(0, r));
+  const catalogo = require('../lib/sync/catalogo');
+  const store = require('../lib/store');
+  const sync = await catalogo.sincronizarTudo();
   const B = `http://127.0.0.1:${servidor.address().port}`;
   const get = async (p, h = {}) => { const r = await fetchOrig(B + p, { headers: h }); return { s: r.status, j: await r.json().catch(() => null), h: r.headers }; };
   const send = async (p, method, body, h = {}) => { const r = await fetchOrig(B + p, { method, body: typeof body === 'string' ? body : JSON.stringify(body), headers: { 'content-type': 'application/json', ...h } }); return { s: r.status, j: await r.json().catch(() => null), h: r.headers }; };
@@ -129,78 +148,113 @@ const mcc = http.createServer((req, res) => {
   let ok = 0; const t = async (nome, fn) => { await fn(); ok++; console.log('✓', nome); };
 
   await t('CEP inválido → 400', async () => { const r = await get('/api/cobertura?cep=123'); assert.equal(r.s, 400); });
-  await t('SP 01002-000: Claro + TIM, com promo Claro (cidade com acento normalizada)', async () => {
+  await t('Sincronização: lê as 4 operadoras dos sites e monta o catálogo', async () => {
+    for (const id of ['tim', 'claro', 'nio', 'vivo']) assert.equal(sync.operadoras[id].ok, true, id + ': ' + JSON.stringify(sync.operadoras[id]));
+    const todos = catalogo.todos();
+    const tim = todos.filter((p) => p.operadoraId === 'tim' && p.regiao === 'br');
+    assert.deepEqual(tim.map((p) => [p.nome, p.preco, p.precoPromo, p.mesesPromo]).slice(0, 2), [['TIM Ultrafibra 500 Mega', 129.99, 89.99, 12], ['TIM Ultrafibra 1 Giga', 189.99, 99.99, 12]]);
+    assert.ok(tim.find((p) => p.nome.includes('Paramount')).streaming.includes('paramount'));
+    assert.ok(!tim.some((p) => p.origemId.includes('d600ctlblack')), 'plano fora da vitrine (showOnLanding=false) não entra');
+    assert.ok(todos.some((p) => p.operadoraId === 'tim' && p.regiao === 'sp' && p.velocidadeMbps === 400), 'tabela SP da TIM lida');
+    const claro = todos.filter((p) => p.operadoraId === 'claro');
+    assert.deepEqual(claro.map((p) => [p.nome, p.tipo, p.preco]), [['Claro Fibra 350 Mega', 'internet', 89.9], ['Claro Fibra 750 Mega', 'internet', 99.9], ['Claro Fibra 750 Mega + Celular Pós 60GB', 'combo-movel', 199.8], ['Claro Fibra 5 Giga', 'internet', 499.9]]);
+    assert.equal(claro[2].precoPromo, 159.9, 'combo: internet + celular com preço de combo');
+    assert.ok(claro.every((p) => p.streaming.includes('globoplay')));
+    const nio = todos.filter((p) => p.operadoraId === 'nio');
+    assert.deepEqual(nio.map((p) => [p.nome, p.preco, p.streaming.join(), p.mesesStreaming]), [['Nio Fibra 600 Mega', 110, '', null], ['Nio Essencial 800 Mega + Chip 5G', 140, '', null], ['Nio Super 1 Giga + Globoplay + Chip 5G', 170, 'globoplay', 12], ['Nio Ultra 1 Giga + Globoplay + Chip 5G', 200, 'globoplay', 12]]);
+    assert.ok(nio[0].beneficios.includes('R$ 95 pagando no cartão'));
+    const vivo = todos.filter((p) => p.operadoraId === 'vivo');
+    assert.deepEqual(vivo[0], { ...vivo[0], nome: 'Vivo Fibra 600 Mega + Disney+', preco: 120, precoPromo: 100, mesesPromo: 12, streaming: ['disney'], mesesStreaming: 12 });
+    assert.ok(vivo.some((p) => p.tipo === 'combo-tv' && p.preco === 270));
+    // ids estáveis: sincronizar de novo não muda os ids
+    const ids = todos.map((p) => p.id).sort();
+    await catalogo.sincronizarTudo();
+    assert.deepEqual(catalogo.todos().map((p) => p.id).sort(), ids);
+  });
+  await t('Falha num site mantém os últimos preços lidos daquela operadora', async () => {
+    global.timFora = true;
+    const r = await catalogo.sincronizarOperadora('tim');
+    assert.equal(r.ok, false); assert.ok(/503/.test(r.erro));
+    assert.ok(catalogo.todos().some((p) => p.operadoraId === 'tim'), 'planos antigos da TIM continuam');
+    global.timFora = false;
+    assert.equal((await catalogo.sincronizarOperadora('tim')).ok, true);
+  });
+  await t('SP 01002-000: Claro + TIM + Nio (cidade promo); preço da Claro é o de São Paulo e TIM usa tabela SP', async () => {
     const r = await get('/api/cobertura?cep=01002-000');
     assert.equal(r.s, 200);
-    assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['claro', 'tim']);
+    assert.equal(r.j.promoNio, true, 'SAO PAULO está na lista cidades-promo-claro');
+    assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['claro', 'nio', 'tim'], 'Nio entra pela área promocional');
     assert.equal(r.j.demo, false);
-    assert.ok(r.j.planos.some((p) => p.nome.includes('Promo')), 'plano de cidade promo deve aparecer');
-    assert.ok(r.j.planos.every((p) => p.operadora.id !== 'nio'));
+    assert.equal(r.j.planos.find((p) => p.nome === 'Claro Fibra 350 Mega').preco, 79.9, 'preço da Claro para São Paulo');
+    assert.ok(global.claroChamadas.includes('SP/sao_paulo'));
+    assert.ok(r.j.planos.some((p) => p.operadora.id === 'tim' && p.velocidadeMbps === 400), 'TIM tabela SP');
+    assert.ok(!r.j.planos.some((p) => p.operadora.id === 'vivo'), 'Vivo sem cobertura não aparece');
     assert.equal(r.j.endereco.cidade, 'São Paulo');
   });
-  await t('Busca do MCC é "contém": 0100200 NÃO conta como coberto (match exato)', async () => {
+  await t('Busca do MCC é "contém": 0100200 NÃO conta como coberto (match exato); só a Nio entra, pela cidade promo', async () => {
     const r = await get('/api/cobertura?cep=01002002');
-    assert.equal(r.j.operadoras.length, 0); assert.equal(r.j.planos.length, 0);
+    assert.deepEqual(r.j.operadoras.map((o) => o.id), ['nio']); assert.ok(r.j.planos.every((p) => p.operadora.id === 'nio'));
   });
-  await t('RJ 20040-002: Claro + Nio, sem plano promo', async () => {
+  await t('RJ 20040-002: Claro + Nio, fora da área promo; Claro com preço do Rio', async () => {
     const r = await get('/api/cobertura?cep=20040002');
     assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['claro', 'nio']);
-    assert.ok(!r.j.planos.some((p) => p.nome.includes('Promo')));
+    assert.equal(r.j.promoNio, false);
+    assert.equal(r.j.planos.find((p) => p.nome === 'Claro Fibra 350 Mega').preco, 89.9);
+    assert.ok(r.j.planos.every((p) => !p.promoAplicada));
   });
   await t('Sessão do MCC expirada → entra de novo sozinho', async () => {
     global.expirarPrimeira = true;
     const antes = logins;
     // força nova consulta sem cache
     const r = await get('/api/cobertura?cep=01002001');
-    assert.equal(r.s, 200); assert.ok(logins > antes); assert.deepEqual(r.j.operadoras.map((o) => o.id), ['claro']);
+    assert.equal(r.s, 200); assert.ok(logins > antes); assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['claro', 'nio']);
   });
   await t('Destaques e config públicos', async () => {
-    const d = await get('/api/destaques'); assert.ok(d.j.planos.length > 0); assert.ok(d.j.planos.every((p) => p.destaque));
+    const d = await get('/api/destaques'); assert.equal(d.j.planos.length, 4, 'sem escolha no painel: o mais barato de cada operadora'); assert.deepEqual([...new Set(d.j.planos.map((p) => p.operadora.id))].sort(), ['claro', 'nio', 'tim', 'vivo']);
     const c = await get('/api/config'); assert.equal(c.j.whatsapp, '5521900000000');
   });
   await t('Contato: valida e grava', async () => {
     assert.equal((await send('/api/contato', 'POST', { nome: 'A', telefone: '1' })).s, 400);
     assert.equal((await send('/api/contato', 'POST', { nome: 'Maria', telefone: '(21) 99999-0000', cep: '20040002', origem: 'plano' })).s, 200);
   });
-  await t('Painel bloqueado sem login', async () => { assert.equal((await get('/admin/api/planos')).s, 401); });
+  await t('Painel bloqueado sem login', async () => { assert.equal((await get('/admin/api/catalogo')).s, 401); });
   await t('Senha errada → 401', async () => { assert.equal((await send('/admin/api/login', 'POST', { senha: 'x' })).s, 401); });
 
   const login = await send('/admin/api/login', 'POST', { senha: 'admin123' });
   const cookie = login.h.get('set-cookie').split(';')[0];
   const H = { cookie, 'x-requested-with': 'painel' };
   await t('Login no painel', async () => { assert.equal(login.s, 200); assert.equal((await get('/admin/api/status', H)).j.modoDemo, false); });
-  await t('Cookie adulterado é recusado', async () => { assert.equal((await get('/admin/api/planos', { cookie: cookie.slice(0, -2) + '00' })).s, 401); });
-  await t('Escrita sem cabeçalho do painel é recusada (CSRF)', async () => { assert.equal((await send('/admin/api/planos', 'POST', {}, { cookie })).s, 403); });
+  await t('Cookie adulterado é recusado', async () => { assert.equal((await get('/admin/api/catalogo', { cookie: cookie.slice(0, -2) + '00' })).s, 401); });
+  await t('Escrita sem cabeçalho do painel é recusada (CSRF)', async () => { assert.equal((await send('/admin/api/curadoria', 'PUT', {}, { cookie })).s, 403); });
 
-  let novo;
-  await t('Criar plano (valida preço/operadora)', async () => {
-    assert.equal((await send('/admin/api/planos', 'POST', { operadoraId: 'xxx', nome: 'a', preco: 10 }, H)).s, 400);
-    assert.equal((await send('/admin/api/planos', 'POST', { operadoraId: 'nio', nome: 'a', preco: 10, precoPromo: 20 }, H)).s, 400);
-    const r = await send('/admin/api/planos', 'POST', { operadoraId: 'nio', nome: 'Nio 1 Giga', preco: '139,90', velocidadeMbps: '1000', beneficios: ['Wi-Fi 6', ''], ativo: true }, H);
-    assert.equal(r.s, 201); assert.equal(r.j.preco, 139.9); assert.deepEqual(r.j.beneficios, ['Wi-Fi 6']); novo = r.j;
+  await t('Curadoria: destaque, ocultar e preço promo da Nio nas cidades promocionais', async () => {
+    const cat = (await get('/admin/api/catalogo', H)).j;
+    assert.ok(cat.planos.length >= 15); assert.equal(cat.status.operadoras.nio.ok, true);
+    const nio600 = cat.planos.find((p) => p.nome === 'Nio Fibra 600 Mega');
+    const tim1g = cat.planos.find((p) => p.nome === 'TIM Ultrafibra 1 Giga' && p.regiao === 'br');
+    const vivo2g = cat.planos.find((p) => p.nome === 'Vivo Fibra Ultravelocidade 2 Giga');
+    const r = await send('/admin/api/curadoria', 'PUT', { destaques: { [nio600.id]: true, [tim1g.id]: 'sim', 'xx': true }, promoNio: { [nio600.id]: '95,00' }, ocultos: { [vivo2g.id]: true }, nioEmAreaPromo: true }, H);
+    assert.equal(r.s, 200); assert.deepEqual(Object.keys(r.j.destaques).sort(), [nio600.id, tim1g.id].sort()); assert.equal(r.j.promoNio[nio600.id], 95);
+    const d = (await get('/api/destaques')).j; assert.deepEqual(d.planos.map((p) => p.id).sort(), [nio600.id, tim1g.id].sort()); assert.ok(d.planos.every((p) => p.destaque));
+    assert.equal(d.planos.find((p) => p.id === nio600.id).precoPromo, null, 'na vitrine (sem CEP) vale o preço do site da Nio');
+    // cidade promo (SP): preço promo da Nio aplicado; fora dela (RJ): não
+    const sp = (await get('/api/cobertura?cep=01002000')).j; const pSp = sp.planos.find((p) => p.id === nio600.id);
+    assert.equal(pSp.precoPromo, 95); assert.equal(pSp.preco, 110); assert.equal(pSp.promoAplicada, true);
+    assert.deepEqual(sp.planos.slice(0, 2).map((p) => p.id).sort(), [nio600.id, tim1g.id].sort(), 'destaques vêm primeiro');
+    const rj = (await get('/api/cobertura?cep=20040002')).j; assert.equal(rj.planos.find((p) => p.id === nio600.id).precoPromo, null);
+    assert.ok(!(await get('/api/cobertura?cep=01002000')).j.planos.some((p) => p.id === vivo2g.id));
+    // com a opção desligada, a Nio só entra se o CEP estiver na lista da Nio
+    await send('/admin/api/curadoria', 'PUT', { ...r.j, nioEmAreaPromo: false }, H);
+    require('../lib/cobertura').limparCache();
+    assert.deepEqual((await get('/api/cobertura?cep=01002000')).j.operadoras.map((o) => o.id).sort(), ['claro', 'tim']);
+    await send('/admin/api/curadoria', 'PUT', { ...r.j, nioEmAreaPromo: true }, H);
   });
-  await t('Plano novo aparece na busca; desativado some', async () => {
-    let r = await get('/api/cobertura?cep=20040002'); assert.ok(r.j.planos.some((p) => p.id === novo.id));
-    assert.equal((await send('/admin/api/planos/' + novo.id, 'PUT', { ativo: false }, H)).s, 200);
-    r = await get('/api/cobertura?cep=20040002'); assert.ok(!r.j.planos.some((p) => p.id === novo.id));
+  await t('Claro: cidade sem catálogo cai para a região padrão', async () => {
+    const planos = await catalogo.planosPara({ uf: 'RJ', cidade: 'Cidade Sem Claro' });
+    assert.equal(planos.find((p) => p.nome === 'Claro Fibra 350 Mega').preco, 89.9);
+    assert.ok(planos.find((p) => p.operadoraId === 'claro').regiao === catalogo.REGIAO_PADRAO_CLARO);
   });
-  await t('Exportar e reimportar CSV (formato brasileiro)', async () => {
-    const r = await fetchOrig(B + '/admin/api/planos/exportar', { headers: H });
-    const texto = await r.text();
-    assert.ok(texto.includes('139,9'));
-    const editado = texto.replace('139,9', '129,9');
-    const imp = await send('/admin/api/planos/importar', 'POST', editado, { ...H, 'content-type': 'text/csv' });
-    assert.equal(imp.s, 200); assert.equal(imp.j.criados, 0);
-    const planos = (await get('/admin/api/planos', H)).j;
-    assert.equal(planos.find((p) => p.id === novo.id).preco, 129.9);
-  });
-  await t('Importação com erro não altera nada', async () => {
-    const antes = (await get('/admin/api/planos', H)).j.length;
-    const imp = await send('/admin/api/planos/importar', 'POST', 'operadoraId;nome;preco\nclaro;Ok;99,9\noi-inexistente;Ruim;10', { ...H, 'content-type': 'text/csv' });
-    assert.equal(imp.s, 400); assert.ok(imp.j.detalhes[0].includes('Linha 3'));
-    assert.equal((await get('/admin/api/planos', H)).j.length, antes);
-  });
-  await t('Operadora com planos não pode ser removida', async () => {
+  await t('Operadora sincronizada não pode ser removida; outras podem', async () => {
     const ops = (await get('/admin/api/operadoras', H)).j;
     assert.equal((await send('/admin/api/operadoras', 'PUT', ops.filter((o) => o.id !== 'tim'), H)).s, 400);
     assert.equal((await send('/admin/api/operadoras', 'PUT', [...ops, { nome: 'Fibra Local', cobertura: 'todas' }], H)).s, 200);
@@ -373,44 +427,27 @@ const mcc = http.createServer((req, res) => {
     const ops = (await get('/admin/api/operadoras', H)).j; ops.find((o) => o.id === 'claro').logoUrl = j.url;
     const sv = await send('/admin/api/operadoras', 'PUT', ops, H); assert.equal(sv.j.find((o) => o.id === 'claro').logoUrl, j.url);
   });
-  await t('Plano com streaming aparece com o nome do serviço', async () => {
-    const r = await send('/admin/api/planos', 'POST', { operadoraId: 'tim', nome: 'TIM 600 c/ Paramount', preco: 149.99, precoPromo: 109.99, velocidadeMbps: 600, streaming: ['paramount', 'xyz'] }, H);
-    assert.deepEqual(r.j.streaming, ['paramount']);
+  await t('Plano com streaming aparece com o nome do serviço no site', async () => {
     const c = await get('/api/cobertura?cep=01002000');
-    const p = c.j.planos.find((x) => x.nome === 'TIM 600 c/ Paramount'); assert.deepEqual(p.streaming, [{ id: 'paramount', nome: 'Paramount+' }]);
+    const p = c.j.planos.find((x) => x.nome === 'TIM Ultrafibra 600 Mega + Paramount'); assert.deepEqual(p.streaming, [{ id: 'paramount', nome: 'Paramount+' }]);
   });
-  await t('Monitor: lê a página da operadora, extrai ofertas e detecta mudança', async () => {
-    const monitor = require('../lib/monitor');
-    const url = `http://127.0.0.1:${mcc.address().port}/oferta-tim`;
-    let r = await monitor.verificarOperadora({ id: 'tim', siteOfertas: url });
-    assert.equal(r.ok, true);
-    assert.deepEqual(r.ofertas.map((o) => o.velocidadeMbps), [500, 600, 1000]);
-    assert.deepEqual(r.ofertas[0].precos, [129.99, 89.99]);
-    assert.deepEqual(r.ofertas[1].streaming, ['paramount+']);
-    assert.ok(!r.ofertas.some((o) => o.velocidadeMbps === 999), 'ignora texto dentro de <script>');
-    const h1 = r.hash;
-    await send('/admin/api/monitor/tim/revisado', 'POST', {}, H);
-    r = await monitor.verificarOperadora({ id: 'tim', siteOfertas: url }); assert.equal(r.hash, h1); assert.equal(r.revisadoHash, h1);
-    global.precoGiga = '179,99';
-    r = await monitor.verificarOperadora({ id: 'tim', siteOfertas: url }); assert.notEqual(r.hash, h1); assert.notEqual(r.revisadoHash, r.hash);
-    const viaPainel = await get('/admin/api/monitor', H); assert.equal(viaPainel.j.tim.ofertas[2].precos[0], 179.99);
+  await t('Slide com plano usa o catálogo (filtro por streaming e plano escolhido)', async () => {
+    const nioSuper = catalogo.todos().find((p) => p.nome.startsWith('Nio Super'));
+    await send('/admin/api/slides', 'PUT', [{ titulo: 'Com *Globoplay*', visual: 'plano', filtro: 'streaming:globoplay', ativo: true }, { titulo: 'Escolhido', visual: 'plano', planoId: nioSuper.id, ativo: true }, { titulo: 'Sem plano', visual: 'plano', filtro: 'streaming:netflix', ativo: true }], H);
+    const pub = (await get('/api/slides')).j;
+    assert.equal(pub.length, 2, 'slide sem plano correspondente não aparece');
+    assert.ok(pub[0].plano.streaming.some((x) => x.id === 'globoplay'));
+    assert.equal(pub[1].plano.id, nioSuper.id); assert.equal(pub[1].plano.preco, 170);
   });
-
-  await t('Migração: logos oficiais, Vivo e troca de exemplos por planos reais', async () => {
-    const store = require('../lib/store');
+  await t('Migração: logos oficiais, Vivo e cadastro manual antigo vira backup', async () => {
     const ops = (await get('/admin/api/operadoras', H)).j;
     assert.ok(ops.find((o) => o.id === 'vivo'), 'Vivo adicionada');
     assert.equal(ops.find((o) => o.id === 'nio').logoUrl, '/images/operadoras/nio.png');
     assert.equal((await fetchOrig(B + '/images/operadoras/tim.png')).status, 200);
-    // com só exemplos e sem MANTER_EXEMPLOS, troca pelos reais
-    delete process.env.MANTER_EXEMPLOS;
-    store.save('planos', store.load('planos', []).filter((p) => /^Exemplo /.test(p.nome)));
+    store.save('planos', [{ nome: 'Exemplo Claro 500 Mega' }]);
     store.init();
-    const nomes = store.load('planos', []).map((p) => p.nome);
-    assert.ok(nomes.includes('Nio Super 800 Mega + Globoplay'));
-    assert.ok(!nomes.some((n) => /^Exemplo /.test(n)));
-    // planos cadastrados pela equipe nunca são trocados
-    store.init(); assert.equal(store.load('planos', []).length, nomes.length);
+    assert.ok(!fs.existsSync(path.join(process.env.DATA_DIR, 'planos.json')));
+    assert.ok(fs.existsSync(path.join(process.env.DATA_DIR, 'planos-manual-backup.json')));
   });
 
   console.log(`\n${ok} testes passaram.`);

@@ -1,4 +1,4 @@
-// Conecta Aqui — site + ponte de cobertura (app Minha Casa Conectada) + painel de planos.
+// Conecta Aqui — site + ponte de cobertura (app Minha Casa Conectada) + catálogo sincronizado com os sites das operadoras.
 // Sem dependências externas: só Node.js 20+.
 const http = require('node:http');
 const fs = require('node:fs');
@@ -11,7 +11,7 @@ const faixas = require('./lib/faixas');
 const rastreio = require('./lib/rastreio');
 const datacrazy = require('./lib/datacrazy');
 const cobertura = require('./lib/cobertura');
-const monitor = require('./lib/monitor');
+const catalogo = require('./lib/sync/catalogo');
 const gasto = require('./lib/gasto');
 const trafego = require('./lib/trafego');
 const { scriptGoogle } = require('./lib/script-google');
@@ -107,21 +107,42 @@ function senhaConfere(s) {
 
 // ---------------- dados ----------------
 const operadorasAtivas = () => store.load('operadoras', []).filter((o) => o.ativo);
-function planosPublicos(filtro) {
+const efetivo = (p) => p.precoPromo ?? p.preco;
+
+// Planos do catálogo sincronizado, já com a curadoria do painel aplicada, para um endereço (ou a vitrine, sem endereço).
+// promoNio: o CEP está numa cidade promocional da Nio (lista "cidades-promo-claro" do MCC) -> vale o preço promo informado no painel.
+async function planosPublicos({ endereco = null, promoNio = false, filtro = () => true } = {}) {
   const ops = Object.fromEntries(store.load('operadoras', []).map((o) => [o.id, o]));
-  return store.load('planos', [])
-    .filter((p) => p.ativo && ops[p.operadoraId]?.ativo && filtro(p))
-    .sort((a, b) => (b.destaque - a.destaque) || (a.ordem - b.ordem) || ((a.precoPromo ?? a.preco) - (b.precoPromo ?? b.preco)))
-    .map((p) => ({
-      id: p.id, nome: p.nome, tipo: p.tipo, velocidadeMbps: p.velocidadeMbps, preco: p.preco, precoPromo: p.precoPromo,
-      mesesPromo: p.mesesPromo, beneficios: p.beneficios, destaque: p.destaque,
-      streaming: (p.streaming || []).map((k) => ({ id: k, nome: store.STREAMING[k] })), mesesStreaming: p.mesesStreaming ?? null,
-      linkContratacao: p.linkContratacao || ops[p.operadoraId].linkContratacao || '',
-      operadora: { id: p.operadoraId, nome: ops[p.operadoraId].nome, cor: ops[p.operadoraId].cor, logoUrl: ops[p.operadoraId].logoUrl },
-    }));
+  const cur = store.curadoria();
+  const lista = await catalogo.planosPara(endereco);
+  return lista
+    .filter((p) => ops[p.operadoraId]?.ativo && !cur.ocultos[p.id])
+    .map((p) => {
+      const promo = promoNio && p.operadoraId === 'nio' && cur.promoNio[p.id];
+      return {
+        id: p.id, nome: p.nome, tipo: p.tipo, velocidadeMbps: p.velocidadeMbps,
+        preco: p.preco, precoPromo: promo && promo < p.preco ? promo : p.precoPromo, mesesPromo: promo ? null : p.mesesPromo,
+        beneficios: p.beneficios, destaque: Boolean(cur.destaques[p.id]), selo: p.selo || '',
+        streaming: (p.streaming || []).map((k) => ({ id: k, nome: store.STREAMING[k] })), mesesStreaming: p.mesesStreaming ?? null,
+        linkContratacao: ops[p.operadoraId].linkContratacao || p.linkContratacao || '',
+        operadora: { id: p.operadoraId, nome: ops[p.operadoraId].nome, cor: ops[p.operadoraId].cor, logoUrl: ops[p.operadoraId].logoUrl },
+        promoAplicada: Boolean(promo),
+      };
+    })
+    .filter(filtro)
+    .sort((a, b) => (b.destaque - a.destaque) || (efetivo(a) - efetivo(b)) || ((a.velocidadeMbps || 0) - (b.velocidadeMbps || 0)));
 }
 
-const COLUNAS_PLANO = ['id', 'operadoraId', 'nome', 'tipo', 'velocidadeMbps', 'preco', 'precoPromo', 'mesesPromo', 'beneficios', 'streaming', 'mesesStreaming', 'destaque', 'ativo', 'apenasCidadePromo', 'linkContratacao', 'ordem'];
+// Cobertura do CEP com a regra promocional: cidades da lista "cidades-promo-claro" do MCC são as cidades
+// onde a Nio está em promoção. Nelas, a Nio aparece (se o painel permitir) e usa o preço promo do painel.
+async function coberturaComPromo(cep, ops) {
+  const base = await cobertura.consultar(cep, ops);
+  const dados = { ...base, operadoras: { ...base.operadoras }, promoNio: Boolean(base.promoClaro) };
+  const cur = store.curadoria();
+  if (dados.promoNio && cur.nioEmAreaPromo && ops.some((o) => o.id === 'nio')) dados.operadoras.nio = true;
+  return dados;
+}
+
 const COLUNAS_LEAD = ['criadoEm', 'nome', 'telefone', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'uf', 'planoNome', 'operadora', 'origem'];
 
 // ---------------- rotas públicas ----------------
@@ -129,16 +150,20 @@ async function rotaPublica(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/cobertura') {
     if (!limitar(req, 'cob', 30, 60_000)) return json(res, 429, { erro: 'Muitas buscas seguidas. Aguarde um minuto.' });
     const ops = operadorasAtivas();
-    const dados = await cobertura.consultar(url.searchParams.get('cep'), ops);
-    const planos = planosPublicos((p) => dados.operadoras[p.operadoraId] && (!p.apenasCidadePromo || dados.promoClaro));
+    const dados = await coberturaComPromo(url.searchParams.get('cep'), ops);
+    const planos = await planosPublicos({ endereco: dados.endereco, promoNio: dados.promoNio, filtro: (p) => dados.operadoras[p.operadora.id] });
     return json(res, 200, {
-      cep: dados.cep, endereco: dados.endereco, demo: dados.demo,
+      cep: dados.cep, endereco: dados.endereco, demo: dados.demo, promoNio: dados.promoNio,
       operadoras: ops.filter((o) => dados.operadoras[o.id]).map((o) => ({ id: o.id, nome: o.nome, cor: o.cor, logoUrl: o.logoUrl })),
       planos,
     });
   }
   if (req.method === 'GET' && url.pathname === '/api/destaques') {
-    return json(res, 200, { planos: planosPublicos((p) => p.destaque && !p.apenasCidadePromo).slice(0, 6), operadoras: operadorasAtivas().map((o) => ({ id: o.id, nome: o.nome, cor: o.cor, logoUrl: o.logoUrl })) });
+    const todos = await planosPublicos();
+    let destaques = todos.filter((p) => p.destaque).slice(0, 6);
+    // sem escolha no painel ainda: mostra o mais barato de cada operadora
+    if (!destaques.length) { const visto = new Set(); destaques = todos.filter((p) => !visto.has(p.operadora.id) && visto.add(p.operadora.id)).slice(0, 6); }
+    return json(res, 200, { planos: destaques, operadoras: operadorasAtivas().map((o) => ({ id: o.id, nome: o.nome, cor: o.cor, logoUrl: o.logoUrl })) });
   }
   if (req.method === 'POST' && url.pathname === '/api/contato') {
     if (!limitar(req, 'lead', 5, 10 * 60_000)) return json(res, 429, { erro: 'Muitos envios. Tente mais tarde.' });
@@ -160,8 +185,8 @@ async function rotaPublica(req, res, url) {
     return json(res, 200, { ok: true });
   }
   if (req.method === 'GET' && url.pathname === '/api/slides') {
-    // slides de promoção trazem o plano junto (preço sempre igual ao do painel)
-    const planos = planosPublicos(() => true);
+    // slides de promoção trazem o plano junto (preço sempre igual ao do catálogo sincronizado)
+    const planos = await planosPublicos();
     const acha = (x) => {
       if (x.planoId) return planos.find((p) => p.id === x.planoId);
       const [k, v] = (x.filtro || '').split(':');
@@ -250,56 +275,21 @@ async function rotaAdmin(req, res, url) {
   const p = url.pathname.replace('/admin/api', '');
 
   if (p === '/status' && req.method === 'GET') {
-    return json(res, 200, { modoDemo: cobertura.MODO_DEMO, planos: store.load('planos', []).length, leads: store.load('leads', []).length });
+    return json(res, 200, { modoDemo: cobertura.MODO_DEMO, planos: catalogo.todos().length, leads: store.load('leads', []).length, catalogo: catalogo.status() });
   }
-  // --- planos ---
-  if (p === '/planos' && req.method === 'GET') return json(res, 200, store.load('planos', []));
-  if (p === '/planos' && req.method === 'POST') {
-    const plano = store.normalizarPlano({ ...(await lerJson(req)), id: undefined, atualizadoEm: undefined });
-    const erros = store.validarPlano(plano, operadoras);
-    if (erros.length) return json(res, 400, { erro: erros.join('; ') });
-    const planos = store.load('planos', []); planos.push(plano); store.save('planos', planos);
-    return json(res, 201, plano);
+  // --- catálogo sincronizado + curadoria ---
+  if (p === '/catalogo' && req.method === 'GET') {
+    return json(res, 200, { status: catalogo.status(), planos: catalogo.todos(), curadoria: store.curadoria(), regiaoPadraoClaro: catalogo.REGIAO_PADRAO_CLARO });
   }
-  let m = p.match(/^\/planos\/([a-f0-9]+)$/);
-  if (m && req.method === 'PUT') {
-    const planos = store.load('planos', []);
-    const i = planos.findIndex((x) => x.id === m[1]);
-    if (i < 0) return json(res, 404, { erro: 'Plano não encontrado' });
-    const plano = store.normalizarPlano({ ...planos[i], ...(await lerJson(req)), id: m[1], atualizadoEm: undefined });
-    const erros = store.validarPlano(plano, operadoras);
-    if (erros.length) return json(res, 400, { erro: erros.join('; ') });
-    planos[i] = plano; store.save('planos', planos);
-    return json(res, 200, plano);
+  if (p === '/catalogo/sincronizar' && req.method === 'POST') {
+    const op = url.searchParams.get('operadora');
+    if (op) return json(res, 200, await catalogo.sincronizarOperadora(op));
+    return json(res, 200, await catalogo.sincronizarTudo());
   }
-  if (m && req.method === 'DELETE') {
-    const planos = store.load('planos', []);
-    store.save('planos', planos.filter((x) => x.id !== m[1]));
-    return json(res, 200, { ok: true });
-  }
-  if (p === '/planos/exportar' && req.method === 'GET') {
-    const br = (n) => (n === null || n === undefined ? '' : String(n).replace('.', ','));
-    const linhas = store.load('planos', []).map((x) => ({ ...x, preco: br(x.preco), precoPromo: br(x.precoPromo), destaque: x.destaque ? 'sim' : 'nao', ativo: x.ativo ? 'sim' : 'nao', apenasCidadePromo: x.apenasCidadePromo ? 'sim' : 'nao' }));
-    return enviar(res, 200, csv.stringify(linhas, COLUNAS_PLANO), 'text/csv; charset=utf-8', { 'content-disposition': 'attachment; filename="planos-conecta-aqui.csv"' });
-  }
-  if (p === '/planos/importar' && req.method === 'POST') {
-    const modo = url.searchParams.get('modo') === 'substituir' ? 'substituir' : 'mesclar';
-    const registros = csv.parse(await lerCorpo(req));
-    if (!registros.length) return json(res, 400, { erro: 'Planilha vazia ou sem cabeçalho.' });
-    const atuais = modo === 'substituir' ? [] : store.load('planos', []);
-    const porId = new Map(atuais.map((x) => [x.id, x]));
-    const erros = []; let criados = 0, atualizados = 0;
-    registros.forEach((r, idx) => {
-      const existente = r.id && porId.get(r.id);
-      const plano = store.normalizarPlano({ ...(existente || {}), ...r, id: existente ? r.id : undefined, atualizadoEm: undefined });
-      const e = store.validarPlano(plano, operadoras);
-      if (e.length) { erros.push(`Linha ${idx + 2}: ${e.join('; ')}`); return; }
-      if (existente) atualizados++; else criados++;
-      porId.set(plano.id, plano);
-    });
-    if (erros.length) return json(res, 400, { erro: 'Nada foi importado. Corrija a planilha:', detalhes: erros.slice(0, 30) });
-    store.save('planos', [...porId.values()]);
-    return json(res, 200, { ok: true, criados, atualizados });
+  if (p === '/curadoria' && req.method === 'PUT') {
+    const cur = store.normalizarCuradoria(await lerJson(req));
+    store.save('curadoria', cur);
+    return json(res, 200, cur);
   }
   // --- operadoras ---
   if (p === '/operadoras' && req.method === 'GET') return json(res, 200, operadoras);
@@ -307,9 +297,8 @@ async function rotaAdmin(req, res, url) {
     const lista = (await lerJson(req)).map(store.normalizarOperadora);
     if (lista.some((o) => !o.id || !o.nome)) return json(res, 400, { erro: 'Toda operadora precisa de nome.' });
     if (new Set(lista.map((o) => o.id)).size !== lista.length) return json(res, 400, { erro: 'Há operadoras com o mesmo nome.' });
-    const usadas = new Set(store.load('planos', []).map((x) => x.operadoraId));
-    const removidaEmUso = operadoras.find((o) => usadas.has(o.id) && !lista.some((n) => n.id === o.id));
-    if (removidaEmUso) return json(res, 400, { erro: `"${removidaEmUso.nome}" tem planos cadastrados. Desative em vez de remover.` });
+    const sincronizada = operadoras.find((o) => catalogo.SINCRONIZADORES[o.id] && !lista.some((n) => n.id === o.id));
+    if (sincronizada) return json(res, 400, { erro: `"${sincronizada.nome}" é sincronizada automaticamente. Desative em vez de remover.` });
     store.save('operadoras', lista); cobertura.limparCache();
     return json(res, 200, lista);
   }
@@ -335,11 +324,6 @@ async function rotaAdmin(req, res, url) {
     fs.writeFileSync(path.join(UPLOADS_DIR, `${nome}.${ext}`), buf);
     return json(res, 200, { url: `/uploads/${nome}.${ext}?v=${Date.now()}` });
   }
-  // --- monitor de ofertas ---
-  if (p === '/monitor' && req.method === 'GET') return json(res, 200, store.load('monitor', {}));
-  if (p === '/monitor/verificar' && req.method === 'POST') return json(res, 200, await monitor.verificarTodas());
-  m = p.match(/^\/monitor\/([a-z0-9-]+)\/revisado$/);
-  if (m && req.method === 'POST') return json(res, 200, monitor.marcarRevisado(m[1]) || {});
   // --- contatos ---
   if (p === '/contatos' && req.method === 'GET') return json(res, 200, store.load('leads', []).slice(-500).reverse());
   if (p === '/contatos/exportar' && req.method === 'GET') {
@@ -389,7 +373,7 @@ async function rotaAdmin(req, res, url) {
   // --- testar cobertura ---
   if (p === '/testar' && req.method === 'GET') {
     cobertura.limparCache();
-    const dados = await cobertura.consultar(url.searchParams.get('cep'), operadorasAtivas());
+    const dados = await coberturaComPromo(url.searchParams.get('cep'), operadorasAtivas());
     return json(res, 200, dados);
   }
   return json(res, 404, { erro: 'Rota não encontrada' });
@@ -437,7 +421,7 @@ const servidor = http.createServer(async (req, res) => {
 
 if (require.main === module) {
   servidor.listen(PORT, () => {
-    if (process.env.MONITOR_OFERTAS !== 'off') monitor.iniciar();
+    if (process.env.SYNC_OFERTAS !== 'off') catalogo.iniciar();
     datacrazy.iniciar(rastreio);
     gasto.iniciar();
     console.log(`Conecta Aqui rodando na porta ${PORT}`);
