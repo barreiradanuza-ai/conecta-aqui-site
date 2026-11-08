@@ -134,20 +134,29 @@
           <h2 id="resTitulo">Planos disponíveis</h2>
           <p id="resEndereco" class="muted"></p>
         </div>
-        <label class="res-ctrl">Ordenar
-          <select id="ordem">
-            <option value="relevancia">Recomendados</option>
-            <option value="preco">Menor preço</option>
-            <option value="velocidade">Maior velocidade</option>
-          </select>
-        </label>
       </div>
-      <div class="filtros">
-        <div class="chips" id="chipsTipos" aria-label="Tipo de serviço"></div>
-        <div class="chips" id="chipsOperadoras" aria-label="Operadoras"></div>
+      <div class="res-corpo" id="resCorpo">
+        <aside class="res-filtros" aria-label="Filtros">
+          <div class="filtro"><h4>Tipo de serviço</h4><div class="chips" id="chipsTipos"></div></div>
+          <div class="filtro"><h4>Velocidade</h4><div class="opcoes" id="filtroVel" role="radiogroup"></div></div>
+          <div class="filtro"><h4>Preço</h4><div class="opcoes" id="filtroPreco" role="radiogroup"></div></div>
+          <div class="filtro"><h4>Operadoras</h4><div class="opcoes" id="chipsOperadoras"></div></div>
+        </aside>
+        <div class="res-lista">
+          <div class="res-barra">
+            <p class="res-contagem" id="resContagem"></p>
+            <label class="res-ctrl">Ordenar
+              <select id="ordem">
+                <option value="relevancia">Recomendados</option>
+                <option value="preco">Menor preço</option>
+                <option value="velocidade">Maior velocidade</option>
+              </select>
+            </label>
+          </div>
+          <div class="aviso-demo oculto" id="avisoDemo">Modo de demonstração: a cobertura exibida é fictícia, apenas para teste.</div>
+          <div class="lista" id="gradePlanos"></div>
+        </div>
       </div>
-      <div class="aviso-demo oculto" id="avisoDemo">Modo de demonstração: a cobertura exibida é fictícia, apenas para teste.</div>
-      <div class="grade" id="gradePlanos"></div>
       <div class="sem-cobertura oculto" id="semCobertura">
         <span class="icone-circulo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
         <h3>Ainda não encontramos planos para esse CEP</h3>

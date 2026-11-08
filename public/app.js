@@ -32,7 +32,7 @@
   // cada aba mostra também o combo completo quando faz sentido
   const TIPO_ABA = { todos: null, internet: ['internet'], 'combo-tv': ['combo-tv', 'combo-completo'], 'combo-movel': ['combo-movel', 'combo-completo'], 'combo-completo': ['combo-completo'] };
   const passaTipo = (p) => !TIPO_ABA[estado.tipo] || TIPO_ABA[estado.tipo].includes(p.tipo);
-  const estado = { soStreaming: false, endereco: null, tipo: 'todos', ordem: 'relevancia', ops: new Set(), resultado: null, config: {}, planoEscolhido: null, origemContato: 'contato' };
+  const estado = { soStreaming: false, endereco: null, tipo: 'todos', ordem: 'relevancia', ops: new Set(), vel: 'todas', precoMax: 0, resultado: null, config: {}, planoEscolhido: null, origemContato: 'contato' };
   $('#ano').textContent = new Date().getFullYear();
 
   // ---------- menu mobile ----------
@@ -180,7 +180,7 @@
       const j = await r.json();
       if (!r.ok) throw new Error(j.erro || 'Erro na busca');
       estado.resultado = j;
-      estado.ops = new Set(j.operadoras.map((o) => o.id));
+      estado.ops = new Set(j.operadoras.map((o) => o.id)); estado.vel = 'todas'; estado.precoMax = 0;
       history.replaceState(null, '', '?cep=' + cep);
       renderResultados();
     } catch (e) {
@@ -193,6 +193,13 @@
     }
   }
 
+  const FAIXAS_VEL = [['todas', 'Todas'], ['ate500', 'Até 500 Mega'], ['600a800', '600 a 800 Mega'], ['1giga', '1 Giga ou mais']];
+  const FAIXAS_PRECO = [[0, 'Todos'], [100, 'Até R$ 100'], [150, 'Até R$ 150'], [200, 'Até R$ 200'], [300, 'Até R$ 300']];
+  const efetivo = (p) => p.precoPromo ?? p.preco;
+  const passaVel = (p) => estado.vel === 'todas' || (estado.vel === 'ate500' ? p.velocidadeMbps <= 500 : estado.vel === '600a800' ? p.velocidadeMbps >= 600 && p.velocidadeMbps < 1000 : p.velocidadeMbps >= 1000);
+  const passaPreco = (p) => !estado.precoMax || efetivo(p) <= estado.precoMax;
+  const opcao = (checked, html, attrs = '', caixa = false) => `<button type="button" class="opcao${caixa ? ' caixa' : ''}" role="${caixa ? 'checkbox' : 'radio'}" aria-checked="${checked}" ${attrs}><span class="marca"></span>${html}</button>`;
+
   function renderResultados() {
     const j = estado.resultado;
     const e = j.endereco;
@@ -204,30 +211,75 @@
 
     if (!j.planos.length) {
       $('#resTitulo').textContent = 'Nenhum plano encontrado';
-      $('#gradePlanos').innerHTML = '';
-      $('#chipsOperadoras').innerHTML = '';
+      $('#resCorpo').classList.add('oculto');
       $('#semCobertura').classList.remove('oculto');
       return;
     }
     $('#semCobertura').classList.add('oculto');
+    $('#resCorpo').classList.remove('oculto');
 
     renderChipsTipo();
-    $('#chipsOperadoras').innerHTML = j.operadoras.map((o) => `<button class="chip op" data-op="${esc(o.id)}" aria-pressed="${estado.ops.has(o.id)}">${o.logoUrl ? `<img class="chip-logo" src="${esc(o.logoUrl)}" alt="${esc(o.nome)}">` : `<span class="bola" style="background:${esc(o.cor)}"></span>${esc(o.nome)}`}</button>`).join('');
-    $$('#chipsOperadoras .chip').forEach((c) => c.addEventListener('click', () => {
+    // filtros laterais
+    const base = j.planos.filter((p) => passaTipo(p) && (!estado.soStreaming || p.streaming?.length));
+    $('#filtroVel').innerHTML = FAIXAS_VEL.map(([k, r]) => opcao(estado.vel === k, esc(r), `data-vel="${k}"`)).join('');
+    $$('#filtroVel .opcao').forEach((o) => o.addEventListener('click', () => { estado.vel = o.dataset.vel; renderResultados(); }));
+    $('#filtroPreco').innerHTML = FAIXAS_PRECO.filter(([v]) => !v || base.some((p) => efetivo(p) <= v) || v === estado.precoMax).map(([v, r]) => opcao(estado.precoMax === v, esc(r), `data-preco="${v}"`)).join('');
+    $$('#filtroPreco .opcao').forEach((o) => o.addEventListener('click', () => { estado.precoMax = Number(o.dataset.preco); renderResultados(); }));
+    $('#chipsOperadoras').innerHTML = j.operadoras.map((o) => {
+      const n = base.filter((p) => p.operadora.id === o.id).length;
+      return opcao(estado.ops.has(o.id), `${o.logoUrl ? `<img class="chip-logo" src="${esc(o.logoUrl)}" alt="${esc(o.nome)}">` : `<span class="bola" style="background:${esc(o.cor)}"></span>${esc(o.nome)}`} <span class="qtd">(${n})</span>`, `data-op="${esc(o.id)}"`, true);
+    }).join('');
+    $$('#chipsOperadoras .opcao').forEach((c) => c.addEventListener('click', () => {
       const id = c.dataset.op;
       estado.ops.has(id) ? estado.ops.delete(id) : estado.ops.add(id);
       renderResultados();
     }));
 
-    let planos = j.planos.filter((p) => estado.ops.has(p.operadora.id) && passaTipo(p) && (!estado.soStreaming || p.streaming?.length));
-    const efetivo = (p) => p.precoPromo ?? p.preco;
+    let planos = base.filter((p) => estado.ops.has(p.operadora.id) && passaVel(p) && passaPreco(p));
     if (estado.ordem === 'preco') planos = [...planos].sort((a, b) => efetivo(a) - efetivo(b));
     if (estado.ordem === 'velocidade') planos = [...planos].sort((a, b) => (b.velocidadeMbps || 0) - (a.velocidadeMbps || 0));
 
     const nOps = j.operadoras.length;
     $('#resTitulo').textContent = `${j.planos.length} ${j.planos.length === 1 ? 'plano' : 'planos'} de ${nOps} ${nOps === 1 ? 'operadora' : 'operadoras'} no seu endereço`;
-    $('#gradePlanos').innerHTML = planos.length ? planos.map(cartao).join('') : '<p class="vazio">Nenhum plano com esses filtros. Tente outra aba ou operadora.</p>';
+    $('#resContagem').innerHTML = `${planos.length} ${planos.length === 1 ? 'resultado' : 'resultados'} &nbsp; <b>${esc(cepFmt)}</b>${d.numero ? ` &nbsp; Número <b>${esc(d.numero)}</b>` : ''}`;
+    $('#gradePlanos').innerHTML = planos.length ? planos.map(linha).join('') : '<p class="vazio">Nenhum plano com esses filtros. Tente outra velocidade, preço ou operadora.</p>';
     ligarBotoesPlano($('#gradePlanos'), planos);
+    $$('[data-detalhes]', $('#gradePlanos')).forEach((b) => b.addEventListener('click', () => {
+      const det = b.closest('.linha').querySelector('.linha-det'); const aberto = det.classList.toggle('oculto');
+      b.textContent = aberto ? 'Mais detalhes +' : 'Menos detalhes −';
+    }));
+  }
+
+  // linha de resultado: logo + nome | velocidade | preço | incluso | WhatsApp
+  function linha(p) {
+    const v = p.velocidadeMbps ? vel(p.velocidadeMbps) : null;
+    const temPromo = p.precoPromo != null;
+    const instGratis = (p.beneficios || []).some((b) => /instala[çc][aã]o/i.test(b) && /gr[aá]tis|inclus/i.test(b));
+    const st = p.streaming?.[0];
+    const tag = p.selo || (p.destaque ? 'Mais escolhido' : '');
+    const extra = st
+      ? `<span class="rot">incluso${p.mesesStreaming ? ` por ${esc(p.mesesStreaming)} meses` : ''}</span>${LOGO_STREAM[st.id] ? `<img class="stream-logo" src="${LOGO_STREAM[st.id]}" alt="${esc(st.nome)}">` : `<span class="st-nome">${esc(st.nome)}</span>`}${p.streaming.length > 1 ? `<span class="sub">+ ${esc(p.streaming.slice(1).map((x) => x.nome).join(', '))}</span>` : ''}`
+      : `<span class="rot">${esc(TIPO_NOME[p.tipo] || 'Internet')}</span>${p.beneficios?.[0] ? `<span class="ben">${esc(p.beneficios[0])}</span>` : ''}`;
+    return `<article class="linha${p.destaque ? ' destaque' : ''}" data-op="${esc(p.operadora.id)}">
+      ${tag ? `<span class="tag${/desconto|oferta|black|promo/i.test(tag) ? ' promo' : ''}">${esc(tag)}</span>` : ''}
+      <div class="linha-topo">
+        <div class="linha-op">${marca(p.operadora)}</div>
+        <div class="linha-tit"><b>${esc(p.nome)}</b><span class="disp">Disponível no CEP</span></div>
+      </div>
+      <div class="linha-cols">
+        <div class="col vel">${v ? `<div class="num">${esc(v.n)}<small>${v.u}</small></div><span class="sub">de internet</span>` : `<span class="sub">${esc(TIPO_NOME[p.tipo] || '')}</span>`}</div>
+        <div class="col preco">
+          ${temPromo ? `<div class="de">de ${brl(p.preco)}/mês</div>` : ''}
+          <div class="valor">${temPromo ? '<span class="por">por</span>' : ''}${brl(temPromo ? p.precoPromo : p.preco)}<small>/mês</small></div>
+          ${temPromo && p.mesesPromo ? `<div class="cond">${brl(p.preco)} a partir do ${esc(p.mesesPromo + 1)}º mês</div>` : ''}
+          ${instGratis ? '<div class="inst"><b>Instalação:</b> Grátis</div>' : ''}
+        </div>
+        <div class="col extra">${extra}</div>
+        <div class="col acao"><button class="btn btn-wa" data-plano="${esc(p.id)}">${ICONE_WA}WhatsApp</button></div>
+      </div>
+      <div class="linha-rodape"><span>Internet fibra sujeita a disponibilidade técnica no endereço</span>${p.beneficios?.length ? '<button type="button" class="link" data-detalhes>Mais detalhes +</button>' : ''}</div>
+      ${p.beneficios?.length ? `<ul class="linha-det oculto">${p.beneficios.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}
+    </article>`;
   }
   function renderChipsTipo() {
     const box = $('#chipsTipos');
