@@ -275,7 +275,7 @@
           ${instGratis ? '<div class="inst"><b>Instalação:</b> Grátis</div>' : ''}
         </div>
         <div class="col extra">${extra}</div>
-        <div class="col acao"><button class="btn btn-wa" data-plano="${esc(p.id)}">${ICONE_WA}WhatsApp</button></div>
+        <div class="col acao"><button class="btn btn-wa" data-plano="${esc(p.id)}">${ICONE_WA}Quero este plano</button></div>
       </div>
       <div class="linha-rodape"><span>Internet fibra sujeita a disponibilidade técnica no endereço</span>${p.beneficios?.length ? '<button type="button" class="link" data-detalhes>Mais detalhes +</button>' : ''}</div>
       ${p.beneficios?.length ? `<ul class="linha-det oculto">${p.beneficios.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}
