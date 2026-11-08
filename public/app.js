@@ -261,7 +261,7 @@
       ? `<span class="rot">incluso${p.mesesStreaming ? ` por ${esc(p.mesesStreaming)} meses` : ''}</span>${LOGO_STREAM[st.id] ? `<img class="stream-logo" src="${LOGO_STREAM[st.id]}" alt="${esc(st.nome)}">` : `<span class="st-nome">${esc(st.nome)}</span>`}${p.streaming.length > 1 ? `<span class="sub">+ ${esc(p.streaming.slice(1).map((x) => x.nome).join(', '))}</span>` : ''}`
       : `<span class="rot">${esc(TIPO_NOME[p.tipo] || 'Internet')}</span>${p.beneficios?.[0] ? `<span class="ben">${esc(p.beneficios[0])}</span>` : ''}`;
     return `<article class="linha${p.destaque ? ' destaque' : ''}" data-op="${esc(p.operadora.id)}">
-      ${tag ? `<span class="tag${/desconto|oferta|black|promo/i.test(tag) ? ' promo' : ''}">${esc(tag)}</span>` : ''}
+      ${tag ? `<span class="tag${/desconto|oferta|black|promo/i.test(tag) ? ' oferta' : ''}">${esc(tag)}</span>` : ''}
       <div class="linha-topo">
         <div class="linha-op">${marca(p.operadora)}</div>
         <div class="linha-tit"><b>${esc(p.nome)}</b><span class="disp">Disponível no CEP</span></div>
