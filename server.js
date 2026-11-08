@@ -111,7 +111,8 @@ const efetivo = (p) => p.precoPromo ?? p.preco;
 
 // Planos do catálogo sincronizado, já com a curadoria do painel aplicada, para um endereço (ou a vitrine, sem endereço).
 // promoNio: o CEP está numa cidade promocional da Nio (lista "cidades-promo-claro" do MCC) -> vale o preço promo informado no painel.
-async function planosPublicos({ endereco = null, promoNio = false, filtro = () => true } = {}) {
+// priorizarNio: nos resultados por CEP em que a Nio atende, os planos dela vêm primeiro e com destaque.
+async function planosPublicos({ endereco = null, promoNio = false, priorizarNio = false, filtro = () => true } = {}) {
   const ops = Object.fromEntries(store.load('operadoras', []).map((o) => [o.id, o]));
   const cur = store.curadoria();
   const lista = await catalogo.planosPara(endereco);
@@ -125,7 +126,7 @@ async function planosPublicos({ endereco = null, promoNio = false, filtro = () =
       return {
         id: p.id, nome: promo ? p.nome.replace(/^(Nio \S+)/, '$1 Especial') : p.nome, tipo: p.tipo, velocidadeMbps: p.velocidadeMbps,
         preco: p.preco, precoPromo: promo || p.precoPromo, mesesPromo: promo ? null : p.mesesPromo,
-        beneficios: promo ? p.beneficios.filter((b) => !/pagando no cart[aã]o/i.test(b)) : p.beneficios, destaque: Boolean(cur.destaques[p.id]),
+        beneficios: promo ? p.beneficios.filter((b) => !/pagando no cart[aã]o/i.test(b)) : p.beneficios, destaque: Boolean(cur.destaques[p.id]) || (priorizarNio && p.operadoraId === 'nio'),
         selo: promo ? (cur.promoNio[p.id] ? 'Oferta da sua cidade' : `${cur.descontoPromoNio}% de desconto`) : (p.selo || ''),
         streaming: (p.streaming || []).map((k) => ({ id: k, nome: store.STREAMING[k] })), mesesStreaming: p.mesesStreaming ?? null,
         linkContratacao: ops[p.operadoraId].linkContratacao || p.linkContratacao || '',
@@ -134,7 +135,7 @@ async function planosPublicos({ endereco = null, promoNio = false, filtro = () =
       };
     })
     .filter(filtro)
-    .sort((a, b) => (b.destaque - a.destaque) || (efetivo(a) - efetivo(b)) || ((a.velocidadeMbps || 0) - (b.velocidadeMbps || 0)));
+    .sort((a, b) => (priorizarNio ? (b.operadora.id === 'nio') - (a.operadora.id === 'nio') : 0) || (b.destaque - a.destaque) || (efetivo(a) - efetivo(b)) || ((a.velocidadeMbps || 0) - (b.velocidadeMbps || 0)));
 }
 
 // Cobertura do CEP com a regra promocional da Nio: o CEP precisa estar na lista "ceps-nio" E a cidade
@@ -153,7 +154,7 @@ async function rotaPublica(req, res, url) {
     if (!limitar(req, 'cob', 30, 60_000)) return json(res, 429, { erro: 'Muitas buscas seguidas. Aguarde um minuto.' });
     const ops = operadorasAtivas();
     const dados = await coberturaComPromo(url.searchParams.get('cep'), ops);
-    const planos = await planosPublicos({ endereco: dados.endereco, promoNio: dados.promoNio, filtro: (p) => dados.operadoras[p.operadora.id] });
+    const planos = await planosPublicos({ endereco: dados.endereco, promoNio: dados.promoNio, priorizarNio: Boolean(dados.operadoras.nio), filtro: (p) => dados.operadoras[p.operadora.id] });
     return json(res, 200, {
       cep: dados.cep, endereco: dados.endereco, demo: dados.demo, promoNio: dados.promoNio,
       operadoras: ops.filter((o) => dados.operadoras[o.id]).map((o) => ({ id: o.id, nome: o.nome, cor: o.cor, logoUrl: o.logoUrl })),

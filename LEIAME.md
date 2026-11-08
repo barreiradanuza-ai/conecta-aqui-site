@@ -23,6 +23,8 @@ Tudo fica em `DATA_DIR/catalogo.json`. Se o site de uma operadora falhar, os úl
 
 O painel (`DATA_DIR/curadoria.json`) guarda só: **destaques** (aparecem em "Ofertas do mês" e primeiro nos resultados), **ocultos**, o **desconto da Nio nas cidades promocionais** (%) e, opcionalmente, um **preço promo da Nio** por plano.
 
+Nos resultados por CEP em que a Nio atende, os planos dela vêm sempre primeiro e com a tag de destaque; o restante segue a curadoria do painel e o preço.
+
 ### Área promocional da Nio
 
 A Nio tem preço diferenciado em algumas cidades. A lista `cidades-promo-claro` do app Minha Casa Conectada é a lista dessas cidades (ex.: ALEGRETE). A regra é o cruzamento das duas listas: o CEP está em `ceps-nio` **e** a cidade do CEP está em `cidades-promo-claro`. Só então os planos da Nio aparecem como "Especial" com o **desconto das cidades promocionais** do painel (padrão 50%, que é o que o site da Nio mostra nessas cidades: R$ 110 vira R$ 55) sobre o preço sincronizado. O campo "preço promo Nio" de um plano substitui o desconto só para aquele plano. A Nio nunca aparece só pela cidade: a cobertura continua vindo da lista de CEPs.

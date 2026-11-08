@@ -248,6 +248,11 @@ const mcc = http.createServer((req, res) => {
     assert.equal(pAl.precoPromo, 95); assert.equal(pAl.preco, 110); assert.equal(pAl.promoAplicada, true); assert.equal(pAl.selo, 'Oferta da sua cidade');
     assert.equal(al.planos.find((p) => p.nome.startsWith('Nio Essencial')).precoPromo, 84, 'demais planos: desconto de 40%');
     assert.equal(al.planos[0].id, nio600.id, 'destaque vem primeiro');
+    // Nio sempre primeiro e em destaque onde atende (RJ: Claro + Nio)
+    const rjN = (await get('/api/cobertura?cep=20040002')).j;
+    assert.ok(rjN.planos.slice(0, 4).every((p) => p.operadora.id === 'nio' && p.destaque), 'os 4 planos da Nio abrem a lista com destaque');
+    assert.equal(rjN.planos[4].operadora.id, 'claro');
+    assert.ok(!(await get('/api/destaques')).j.planos.every((p) => p.operadora.id === 'nio'), 'a vitrine da home segue só a curadoria');
     const rj = (await get('/api/cobertura?cep=20040002')).j; assert.equal(rj.planos.find((p) => p.id === nio600.id).precoPromo, null);
     assert.ok(!(await get('/api/cobertura?cep=01002000')).j.planos.some((p) => p.id === vivo2g.id));
   });
