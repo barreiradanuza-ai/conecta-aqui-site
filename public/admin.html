@@ -238,9 +238,13 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     <!-- GOOGLE ADS / DATACRAZY -->
     <div data-painel="ads" class="oculto">
       <div class="card">
-        <div class="barra" style="justify-content:space-between"><h2>Google Ads + DataCrazy</h2><div><button class="btn" id="btnDcTeste" type="button" title="Grava Plano, Operadora escolhida e um produto no negócio do lead TESTE API">Testar no negócio TESTE API</button> <button class="btn" id="btnDcDiag" type="button">Diagnóstico</button> <button class="btn prim" id="btnDcSync" type="button">Sincronizar agora</button></div></div>
+        <div class="barra" style="justify-content:space-between"><h2>Google Ads + DataCrazy</h2><div><button class="btn" id="btnDcTeste" type="button" title="Grava os campos mapeados (plano, operadora, endereço de exemplo) e um produto no negócio do lead TESTE API">Testar no negócio TESTE API</button> <button class="btn" id="btnDcDiag" type="button">Diagnóstico</button> <button class="btn prim" id="btnDcSync" type="button">Sincronizar agora</button></div></div>
         <p class="dica">Quem chega por anúncio do Google recebe um código (ex.: <b>Ref: G-7K3P2</b>) na mensagem do WhatsApp. A cada 5 minutos o sistema acha esse código nas conversas do DataCrazy e coloca a tag no lead. Quando o negócio entra na etapa de ganho, vira uma venda no Google Ads.</p>
         <div id="dcResumo" class="dica">Carregando…</div>
+        <h3 style="margin-top:18px">Campos do negócio preenchidos pelo site</h3>
+        <p class="dica">Quando o cliente clica em "Quero este plano", a mensagem do WhatsApp traz plano, operadora, valor e endereço. O endereço já vai para o cadastro do lead; aqui você escolhe quais <b>campos adicionais do negócio</b> recebem esses dados. A lista vem dos campos que existem no negócio do lead <b>TESTE API</b> (crie o campo no DataCrazy, recarregue e escolha o dado). "Testar" grava os valores de exemplo nesse negócio.</p>
+        <div class="tab-wrap"><table><thead><tr><th>Campo no DataCrazy</th><th>Recebe do site</th><th>Valor atual no TESTE API</th></tr></thead><tbody id="dcCampos"><tr><td colspan="3" class="dica">Carregando…</td></tr></tbody></table></div>
+        <div class="barra" style="margin-top:10px"><button class="btn claro" type="button" id="btnDcCamposRecarregar">Recarregar campos</button><span class="esp"></span><button class="btn prim" type="button" id="btnDcCamposSalvar">Salvar mapeamento</button></div>
         <h3 style="margin-top:18px">Endereço para o Google Ads importar as vendas</h3>
         <pre id="dcFeed" style="white-space:pre-wrap;word-break:break-all"></pre>
         <h3 style="margin-top:18px">Últimas vendas enviadas</h3>
@@ -659,10 +663,25 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
       $('#dcLog').textContent = (d.log || []).join('\n') || 'Sem atividade ainda.';
     } catch (err) { $('#dcResumo').textContent = 'Erro: ' + err.message; }
   }
+  let dcCamposInfo = null;
+  async function verDcCampos() {
+    const tb = $('#dcCampos');
+    try {
+      dcCamposInfo = await api('/datacrazy/campos');
+      if (dcCamposInfo.erro && !dcCamposInfo.campos.length) { tb.innerHTML = `<tr><td colspan="3" class="dica">Não consegui listar os campos: ${esc(dcCamposInfo.erro)}</td></tr>`; return; }
+      const op = (sel) => `<option value="">— não preencher —</option>` + Object.entries(dcCamposInfo.chaves).map(([k, r]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${esc(r)}</option>`).join('');
+      tb.innerHTML = dcCamposInfo.campos.map((c) => `<tr><td><b>${esc(c.nome)}</b>${c.opcoes.length ? `<br><small class="dica">opções: ${esc(c.opcoes.join(', '))}</small>` : ''}</td><td><select data-campo="${esc(c.nome)}">${op(c.chave || (c.valor === '' ? c.sugestao : ''))}</select>${!c.chave && c.sugestao && c.valor === '' ? '<br><small class="dica">sugerido pelo nome; confira e salve</small>' : ''}</td><td class="dica">${esc(c.valor || '—')}</td></tr>`).join('') || '<tr><td colspan="3" class="dica">O negócio TESTE API não tem campos adicionais. Crie os campos no DataCrazy (ex.: Operadora escolhida, Plano, Endereço, CEP, Cidade) e recarregue.</td></tr>';
+    } catch (err) { tb.innerHTML = `<tr><td colspan="3" class="dica">Erro: ${esc(err.message)}</td></tr>`; }
+  }
+  $('#btnDcCamposRecarregar').addEventListener('click', verDcCampos);
+  $('#btnDcCamposSalvar').addEventListener('click', async () => {
+    const mapa = {}; $$('#dcCampos select[data-campo]').forEach((s) => { if (s.value) mapa[s.dataset.campo] = s.value; });
+    try { await api('/datacrazy/campos', { method: 'PUT', body: JSON.stringify(mapa) }); flash('Mapeamento salvo. Use "Testar no negócio TESTE API" para conferir.'); verDcCampos(); } catch (err) { flash(err.message, 'erro'); }
+  });
   $('#btnDcSync').addEventListener('click', async () => { $('#btnDcSync').disabled = true; try { await api('/datacrazy/sincronizar', { method: 'POST' }); } catch (err) { flash(err.message, 'erro'); } $('#btnDcSync').disabled = false; verDc(); });
   $('#btnDcTeste').addEventListener('click', async () => { const pre = $('#dcDiag'); pre.classList.remove('oculto'); pre.textContent = 'Testando no negócio do lead TESTE API…'; try { pre.textContent = JSON.stringify(await api('/datacrazy/testar-negocio', { method: 'POST', body: JSON.stringify({ nome: 'TESTE API' }) }), null, 2); } catch (err) { pre.textContent = 'Erro: ' + err.message; } });
   $('#btnDcDiag').addEventListener('click', async () => { const pre = $('#dcDiag'); pre.classList.remove('oculto'); pre.textContent = 'Consultando o DataCrazy…'; try { pre.textContent = JSON.stringify(await api('/datacrazy/diagnostico'), null, 2); } catch (err) { pre.textContent = 'Erro: ' + err.message; } });
-  document.querySelector('[data-aba="ads"]').addEventListener('click', verDc);
+  document.querySelector('[data-aba="ads"]').addEventListener('click', () => { verDc(); verDcCampos(); });
 
   // ---------- faixas de CEP ----------
   async function verFaixas() {

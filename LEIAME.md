@@ -75,6 +75,10 @@ npm test                               # testes ponta a ponta com um MCC simulad
 - Os planos são lidos dos sites das operadoras; para mudar um preço, mude no painel só o que é seu (destaque, oculto, preço promo da Nio). O cadastro manual antigo, se existia, fica em `DATA_DIR/planos-manual-backup.json`.
 - Se uma operadora mudar o site e a leitura quebrar, o painel mostra "falhou" na aba Planos e os últimos preços lidos continuam no ar. Os leitores ficam em `lib/sync/<operadora>.js`, com amostras reais em `test/fixtures/`.
 
+## DataCrazy: campos do negócio preenchidos pelo site
+
+A mensagem do WhatsApp gerada pelo site traz plano, operadora, valor e endereço. A cada 5 minutos o servidor lê as conversas no DataCrazy, grava o endereço no lead e, no negócio do lead, os campos adicionais escolhidos na aba **Google Ads** do painel (tabela "Campos do negócio preenchidos pelo site"). A tabela lista os campos que existem no negócio do lead **TESTE API**; para cada um você escolhe o dado do site (plano, operadora, valor, CEP, rua, número, endereço completo, bairro, cidade, UF, código do anúncio, origem). "Testar no negócio TESTE API" grava valores de exemplo para conferir na tela do CRM. Campos preenchidos à mão pela equipe não são sobrescritos.
+
 ## Pendências antes de ir ao ar
 
 - [ ] Criar no app Minha Casa Conectada um usuário só para a ponte

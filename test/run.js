@@ -122,7 +122,7 @@ const mcc = http.createServer((req, res) => {
   process.env.META_GRAPH_URL = process.env.MCC_BASE_URL; process.env.META_TOKEN = 'meta_teste'; process.env.META_TOKEN_2 = 'meta_bm2'; process.env.META_CONTAS = 'act_111';
   process.env.ADS_FEED_USER = 'conectaaqui';
   process.env.ADS_FEED_PASS = 'senhaFeed';
-  global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] }, produtos: [{ id: 'P0', name: 'Nio Fibra 600', id_sku: 'nf500', price: 110 }], negocio: { id: 'B1', code: 101, leadId: 'L1', status: 'in_process', products: [] }, tentativas: [], camposNegocio: [{ id: 'f1', name: 'Plano' }, { id: 'f2', name: 'Operadora escolhida' }, { id: 'f3', name: 'Vendedor', value: 'Ana' }] };
+  global.DC = { tags: [{ id: 't1', name: 'Cliente' }], lead: { id: 'L1', name: 'Ana', phone: '+5521999991234', tags: [{ id: 't1', name: 'Cliente' }] }, produtos: [{ id: 'P0', name: 'Nio Fibra 600', id_sku: 'nf500', price: 110 }], negocio: { id: 'B1', code: 101, leadId: 'L1', status: 'in_process', products: [] }, tentativas: [], camposNegocio: [{ id: 'f1', name: 'Plano' }, { id: 'f2', name: 'Operadora escolhida' }, { id: 'f3', name: 'Vendedor', value: 'Ana' }, { id: 'f4', name: 'Endereço de instalação' }, { id: 'f5', name: 'CEP' }, { id: 'f6', name: 'Cidade' }] };
   process.env.MCC_PASSWORD = 'segredo';
   process.env.ADMIN_PASSWORD = 'admin123';
   process.env.WHATSAPP_NUMBER = '5521900000000';
@@ -286,7 +286,8 @@ const mcc = http.createServer((req, res) => {
     assert.ok(!st.erro, st.erro);
     assert.deepEqual(global.DC.lead.tags.map((x) => x.id).sort(), ['t1', 't2'], 'tag googleads adicionada mantendo as outras');
     assert.deepEqual(global.DC.lead.address, { zip: '35700001', address: 'Rua A, 12', block: 'Centro', city: 'Sete Lagoas', state: 'MG', country: 'Brasil' });
-    assert.deepEqual(global.DC.camposNegocio.map((c) => [c.name, c.value]), [['Plano', 'Nio Fibra'], ['Operadora escolhida', 'Nio'], ['Vendedor', 'Ana']], 'campos do negócio');
+    assert.deepEqual(global.DC.camposNegocio.map((c) => [c.name, c.value]).slice(0, 3), [['Plano', 'Nio Fibra'], ['Operadora escolhida', 'Nio'], ['Vendedor', 'Ana']], 'campos do negócio');
+    assert.ok(global.DC.camposNegocio.slice(3).every((c) => c.value == null), 'campos de endereço só com mapeamento');
     assert.deepEqual(global.DC.produtos.map((p) => p.name), ['Nio Fibra 600', 'Nio Fibra'], 'plano sem velocidade não acha no catálogo: cria');
     assert.deepEqual(global.DC.negocio.products.map((p) => [p.product.name, p.price]), [['Nio Fibra', 110]], 'produto no negócio');
     const d = (await get('/admin/api/datacrazy', H)).j;
@@ -303,14 +304,19 @@ const mcc = http.createServer((req, res) => {
     const diag = (await get('/admin/api/datacrazy/diagnostico', H)).j;
     assert.ok(diag.etapaEncontrada && diag.tagExiste && diag.temTelefoneNaConversa, JSON.stringify(diag));
   });
-  await t('Botão de teste grava campos e produto no negócio TESTE API', async () => {
+  await t('Mapeamento de campos no painel: lista os campos do negócio, sugere pelo nome, salva e grava endereço', async () => {
+    const lst = (await get('/admin/api/datacrazy/campos', H)).j;
+    assert.ok(!lst.erro, lst.erro); assert.equal(lst.negocio, 101);
+    const porNome = Object.fromEntries(lst.campos.map((c) => [c.nome, c]));
+    assert.equal(porNome['Operadora escolhida'].chave, 'operadora'); assert.equal(porNome.Plano.chave, 'plano');
+    assert.equal(porNome['Endereço de instalação'].sugestao, 'enderecoCompleto'); assert.equal(porNome.CEP.sugestao, 'cep'); assert.equal(porNome.Cidade.sugestao, 'cidade'); assert.equal(porNome.Vendedor.sugestao, '');
+    const sv = (await send('/admin/api/datacrazy/campos', 'PUT', { 'Operadora escolhida': 'operadora', Plano: 'plano', 'Endereço de instalação': 'enderecoCompleto', CEP: 'cep', Cidade: 'cidade', Vendedor: 'xxx' }, H)).j;
+    assert.deepEqual(sv.mapa, { 'Operadora escolhida': 'operadora', Plano: 'plano', 'Endereço de instalação': 'enderecoCompleto', CEP: 'cep', Cidade: 'cidade' }, 'chave desconhecida é descartada');
     global.DC.camposNegocio.forEach((c) => { if (c.id !== 'f3') c.value = null; }); global.DC.negocio.products = [];
     const r = (await send('/admin/api/datacrazy/testar-negocio', 'POST', { nome: 'TESTE API' }, H)).j;
     assert.ok(!r.erro, r.erro);
-    assert.equal(r.camposGravados, 2); assert.equal(r.produtoColocado, true); assert.equal(r.produto, 'Nio Fibra 600');
-    assert.deepEqual(r.tentativas.map((x) => [x.etapa, x.ok]), [['campo', true], ['campo', true], ['produto', true]]);
-    assert.deepEqual(r.camposAgora, { Plano: 'Nio Fibra 600 Mega', 'Operadora escolhida': 'Nio' });
-    assert.equal(global.DC.camposNegocio[0].value, 'Nio Fibra 600 Mega');
+    assert.equal(r.camposGravados, 5); assert.equal(r.produtoColocado, true); assert.equal(r.produto, 'Nio Fibra 600');
+    assert.deepEqual(r.camposAgora, { Plano: 'Nio Fibra 600 Mega', 'Operadora escolhida': 'Nio', 'Endereço de instalação': 'Rua Antônio Denoni, 100 - São Simão - Criciúma/SC - CEP 88811-810', CEP: '88811-810', Cidade: 'Criciúma' });
   });
   await t('Nova mensagem do site na mesma conversa é processada de novo', async () => {
     global.DC.msgs = [{ id: 'm1', body: 'Olá! Quero contratar o plano X\n(Ref: G-ABCDE)', received: true, createdAt: '2026-10-07T10:00:00Z' }, { id: 'm2', body: 'Olá! Quero contratar o plano Claro Fibra 500 Mega (Claro) de R$ 69,90/mês.\nEndereço: Rua B, 5 - Centro - Niterói/RJ - CEP 24000-000', received: true, createdAt: '2026-10-08T02:30:00Z' }];
@@ -321,7 +327,7 @@ const mcc = http.createServer((req, res) => {
     const log2 = (await get('/admin/api/datacrazy', H)).j.log;
     assert.equal(log2.filter((l) => l.includes('Claro Fibra 500 Mega (Claro) na fila')).length, 1, 'não repete a mesma mensagem');
     // a escolha nova substitui o que o sistema tinha preenchido (mas não o que a equipe preencheu)
-    assert.deepEqual(global.DC.camposNegocio.map((c) => c.value), ['Claro Fibra 500 Mega', 'Claro', 'Ana']);
+    assert.deepEqual(global.DC.camposNegocio.map((c) => c.value), ['Claro Fibra 500 Mega', 'Claro', 'Ana', 'Rua B, 5 - Centro - Niterói/RJ - CEP 24000-000', '24000-000', 'Niterói'], 'plano, operadora e endereço do cliente real nos campos mapeados');
     assert.deepEqual(global.DC.negocio.products.map((p) => p.product.name), ['Claro Fibra 500 Mega'].map(() => global.DC.negocio.products[0].product.name));
     assert.ok(/claro/i.test(global.DC.negocio.products[0].product.name), JSON.stringify(global.DC.negocio.products));
     assert.equal(global.DC.lead.address.zip, '24000000', 'endereço novo substitui o antigo');
