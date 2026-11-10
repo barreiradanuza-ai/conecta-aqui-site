@@ -8,6 +8,10 @@ Um único servidor Node.js, sem dependências externas, que entrega três coisas
 | `/admin` | Painel com senha: escolhe os planos em destaque e os do banner, acompanha a sincronização, operadoras, contatos e testa a cobertura de um CEP |
 | `/api/cobertura?cep=` | A ponte: consulta o app Minha Casa Conectada e devolve só as operadoras e os planos que atendem o CEP |
 
+## Cobertura: cópia local das listas do MCC
+
+O site não consulta mais o app Minha Casa Conectada a cada CEP. A cada 6 horas (`lib/espelho.js`) ele baixa a exportação CSV das quatro listas (`ceps-claro`, `ceps-nio`, `ceps-tim`, `cidades-promo-claro`), guarda em `DATA_DIR/mcc-listas.json` e responde às buscas em memória. A aba **Testar** do painel mostra o estado de cada lista e tem o botão "Atualizar agora". Se uma lista ainda não tem cópia (ou a cópia tem mais de 3 dias), a busca consulta o MCC diretamente, com repetições quando a borda responde 429/"rate limited". Variáveis: `ESPELHO_MCC=off` desliga; `ESPELHO_INTERVALO_MIN` muda o intervalo.
+
 ## De onde vêm os planos e preços
 
 Ninguém cadastra plano à mão. A cada 6 horas (e no botão "Sincronizar agora" do painel) o servidor lê os sites das operadoras (`lib/sync/`):

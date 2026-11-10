@@ -9,7 +9,7 @@ const LISTAS = {
   'ceps-claro': ['01002000', '01002001', '20040002'],
   'ceps-nio': ['20040002', '97541000', '88811810'],
   'ceps-tim': ['01002000', '88811810'],
-  'cidades-promo-claro': ['SAO PAULO', 'ALEGRETE'],
+  'cidades-promo-claro': ['SAO PAULO', 'ALEGRETE', 'CRICIUMA'],
 };
 let logins = 0;
 const mcc = http.createServer((req, res) => {
@@ -52,6 +52,14 @@ const mcc = http.createServer((req, res) => {
   if (u.pathname === '/para-voce/produtos-e-servicos/para-casa/internet') { res.setHeader('content-type', 'text/html'); return res.end(fx('vivo-internet.html')); }
   if (u.pathname.startsWith('/api/mcc/admin/') && global.mcc429 > 0) { global.mcc429--; res.statusCode = 429; res.setHeader('retry-after', '0'); return res.end('Too Many Requests'); }
   if (u.pathname.startsWith('/api/') && global.mccTexto > 0) { global.mccTexto--; res.statusCode = 200; res.setHeader('content-type', 'text/plain'); return res.end('rate limited'); } // borda devolvendo texto
+  const ex = u.pathname.match(/^\/api\/mcc\/admin\/([a-z-]+)\/export$/);
+  if (ex) {
+    if (!/session-token=tok\d+/.test(ck)) { res.statusCode = 401; return res.end(JSON.stringify({ error: 'Não autenticado' })); }
+    global.exportacoes = (global.exportacoes || 0) + 1;
+    const col = ex[1] === 'cidades-promo-claro' ? 'CIDADE' : 'CEP';
+    res.setHeader('content-type', 'text/csv; charset=utf-8');
+    return res.end([col, ...(LISTAS[ex[1]] || []).map((v) => `"${col === 'CIDADE' ? v.replace('SAO', 'São') : v.slice(0, 5) + '-' + v.slice(5)}"`)].join('\n'));
+  }
   const m = u.pathname.match(/^\/api\/mcc\/admin\/([a-z-]+)$/);
   if (m) {
     if (!/session-token=tok\d+/.test(ck)) { res.statusCode = 401; return res.end(JSON.stringify({ error: 'Não autenticado' })); }
@@ -106,7 +114,7 @@ const mcc = http.createServer((req, res) => {
     res.statusCode = 404; return res.end('{}');
   }
   const vc = u.pathname.match(/^\/ws\/(\d{8})\/json\/$/);
-  if (vc) return res.end(JSON.stringify(vc[1] === '97541000' ? { cep: vc[1], uf: 'RS', localidade: 'Alegrete' } : { cep: vc[1], uf: vc[1] < '20000000' ? 'SP' : 'RJ', localidade: vc[1] < '20000000' ? 'São Paulo' : 'Rio de Janeiro' }));
+  if (vc) return res.end(JSON.stringify(vc[1] === '97541000' ? { cep: vc[1], uf: 'RS', localidade: 'Alegrete' } : vc[1] === '88811810' ? { cep: vc[1], uf: 'SC', localidade: 'Criciúma' } : { cep: vc[1], uf: vc[1] < '20000000' ? 'SP' : 'RJ', localidade: vc[1] < '20000000' ? 'São Paulo' : 'Rio de Janeiro' }));
   res.statusCode = 404; res.end('{}');
 });
 
@@ -130,6 +138,7 @@ const mcc = http.createServer((req, res) => {
   process.env.WHATSAPP_NUMBER = '5521900000000';
   for (const k of ['TIM_BASE_URL', 'CLARO_BASE_URL', 'NIO_BASE_URL', 'VIVO_BASE_URL']) process.env[k] = process.env.MCC_BASE_URL;
   process.env.SYNC_OFERTAS = 'off';
+  process.env.ESPELHO_MCC = 'off';
   process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ca-'));
 
   // ViaCEP falso (o real fica bloqueado no ambiente de teste)
@@ -209,6 +218,21 @@ const mcc = http.createServer((req, res) => {
     assert.equal(await require('../lib/mcc').existeNaLista('ceps-nio', '20040002'), true, 'cache por lista do MCC');
     global.mcc429 = 0;
   });
+  await t('Espelho local das listas: baixa as exportações CSV e responde sem consultar o MCC', async () => {
+    const espelho = require('../lib/espelho');
+    assert.equal(espelho.existe('ceps-nio', '88811810'), null, 'antes de baixar, não opina');
+    const st = await espelho.atualizar();
+    assert.ok(st.listas['ceps-claro'].emDia && st.listas['cidades-promo-claro'].emDia, JSON.stringify(st));
+    assert.equal(st.listas['ceps-nio'].registros, 3); assert.equal(global.exportacoes, 4);
+    assert.equal(espelho.existe('ceps-nio', '88811810'), true); assert.equal(espelho.existe('ceps-nio', '88811811'), false);
+    assert.equal(espelho.existe('cidades-promo-claro', 'SAO PAULO'), true, 'cidade normalizada sem acento');
+    // com o espelho no ar, a busca por CEP não chama mais o MCC, mesmo com ele fora
+    require('../lib/cobertura').limparCache(); global.mcc429 = 99;
+    const r = await get('/api/cobertura?cep=88811810');
+    assert.equal(r.s, 200); assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['nio', 'tim']); assert.equal(r.j.promoNio, true, 'CRICIÚMA está na lista promo e o CEP na lista da Nio');
+    global.mcc429 = 0;
+    assert.ok(fs.existsSync(path.join(process.env.DATA_DIR, 'mcc-listas.json')), 'cópia salva em disco');
+  });
   await t('Busca do MCC é "contém": 0100200 NÃO conta como coberto (match exato)', async () => {
     const r = await get('/api/cobertura?cep=01002002');
     assert.equal(r.j.operadoras.length, 0); assert.equal(r.j.planos.length, 0);
@@ -224,9 +248,11 @@ const mcc = http.createServer((req, res) => {
     require('../lib/cobertura').limparCache();
     global.expirarPrimeira = true;
     const antes = logins;
-    // força nova consulta sem cache
+    // consulta direta ao MCC (o espelho já responde as buscas do site sem ir ao MCC)
+    assert.equal(await require('../lib/mcc').existeNaLista('ceps-claro', '01002001'), true);
+    assert.ok(logins > antes, 'entrou de novo depois do 401');
     const r = await get('/api/cobertura?cep=01002001');
-    assert.equal(r.s, 200); assert.ok(logins > antes); assert.deepEqual(r.j.operadoras.map((o) => o.id), ['claro']);
+    assert.equal(r.s, 200); assert.deepEqual(r.j.operadoras.map((o) => o.id), ['claro']);
   });
   await t('Destaques e config públicos', async () => {
     const d = await get('/api/destaques'); assert.equal(d.j.planos.length, 4, 'sem escolha no painel: o mais barato de cada operadora'); assert.deepEqual([...new Set(d.j.planos.map((p) => p.operadora.id))].sort(), ['claro', 'nio', 'tim', 'vivo']);

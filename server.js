@@ -12,6 +12,7 @@ const rastreio = require('./lib/rastreio');
 const datacrazy = require('./lib/datacrazy');
 const cobertura = require('./lib/cobertura');
 const catalogo = require('./lib/sync/catalogo');
+const espelho = require('./lib/espelho');
 const gasto = require('./lib/gasto');
 const trafego = require('./lib/trafego');
 const { scriptGoogle } = require('./lib/script-google');
@@ -278,12 +279,14 @@ async function rotaAdmin(req, res, url) {
   const p = url.pathname.replace('/admin/api', '');
 
   if (p === '/status' && req.method === 'GET') {
-    return json(res, 200, { modoDemo: cobertura.MODO_DEMO, planos: catalogo.todos().length, leads: store.load('leads', []).length, catalogo: catalogo.status() });
+    return json(res, 200, { modoDemo: cobertura.MODO_DEMO, planos: catalogo.todos().length, leads: store.load('leads', []).length, catalogo: catalogo.status(), espelho: espelho.status() });
   }
   // --- catálogo sincronizado + curadoria ---
   if (p === '/catalogo' && req.method === 'GET') {
     return json(res, 200, { status: catalogo.status(), planos: catalogo.todos(), curadoria: store.curadoria(), regiaoPadraoClaro: catalogo.REGIAO_PADRAO_CLARO });
   }
+  if (p === '/espelho' && req.method === 'GET') return json(res, 200, espelho.status());
+  if (p === '/espelho/atualizar' && req.method === 'POST') { cobertura.limparCache(); return json(res, 200, await espelho.atualizar()); }
   if (p === '/catalogo/sincronizar' && req.method === 'POST') {
     const op = url.searchParams.get('operadora');
     if (op) return json(res, 200, await catalogo.sincronizarOperadora(op));
@@ -427,6 +430,7 @@ const servidor = http.createServer(async (req, res) => {
 if (require.main === module) {
   servidor.listen(PORT, () => {
     if (process.env.SYNC_OFERTAS !== 'off') catalogo.iniciar();
+    if (process.env.ESPELHO_MCC !== 'off') espelho.iniciar();
     datacrazy.iniciar(rastreio);
     gasto.iniciar();
     console.log(`Conecta Aqui rodando na porta ${PORT}`);

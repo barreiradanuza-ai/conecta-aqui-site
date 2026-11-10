@@ -258,6 +258,11 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     <!-- TESTAR -->
     <div data-painel="testar" class="oculto">
       <div class="card">
+        <div class="barra"><h2 style="margin:0">Listas de CEP do MCC (cópia local)</h2><span class="esp"></span><button class="btn prim" type="button" id="btnEspelho">Atualizar agora</button></div>
+        <p class="dica">O site guarda uma cópia das listas do app Minha Casa Conectada e responde às buscas na hora, sem consultar o MCC a cada CEP. A cópia é renovada a cada 6 horas. Se uma lista ainda não tiver cópia, a busca consulta o MCC diretamente.</p>
+        <div id="espelhoStatus" class="conex"></div>
+      </div>
+      <div class="card">
         <h2>Testar cobertura de um CEP</h2>
         <p class="dica">Consulta direto o app Minha Casa Conectada, sem usar a memória temporária.</p>
         <form class="barra" id="formTestar"><input name="cep" placeholder="00000-000" style="max-width:200px" required><button class="btn prim">Testar</button></form>
@@ -316,8 +321,22 @@ pre{background:#0b1f3a;color:#dce7f2;padding:14px;border-radius:12px;overflow:au
     $$('[data-painel]').forEach((p) => p.classList.toggle('oculto', p.dataset.painel !== b.dataset.aba));
     if (b.dataset.aba === 'trafego') carregarTrafego();
     if (b.dataset.aba === 'contatos') carregarContatos();
+    if (b.dataset.aba === 'testar') verEspelho();
     if (b.dataset.aba === 'slides') carregarSlides();
   }));
+
+  const NOME_LISTA = { 'ceps-claro': 'CEPs Claro', 'ceps-nio': 'CEPs Nio', 'ceps-tim': 'CEPs TIM', 'cidades-promo-claro': 'Cidades promo (Claro/Nio)' };
+  async function verEspelho() {
+    try {
+      const st = await api('/espelho');
+      $('#espelhoStatus').innerHTML = Object.entries(st.listas).map(([l, s]) => `<div><b>${esc(NOME_LISTA[l] || l)}</b><div class="${s.emDia ? 'ok-txt' : 'ruim-txt'}">● ${s.emDia ? `${s.registros.toLocaleString('pt-BR')} registros` : 'sem cópia (consultando o MCC direto)'}</div><div class="dica">Atualizada: ${s.atualizadoEm ? new Date(s.atualizadoEm).toLocaleString('pt-BR') : 'nunca'}${s.erro ? `<br>Último erro: ${esc(s.erro)}` : ''}</div></div>`).join('') + (st.rodando ? '<div class="dica">Atualização em andamento…</div>' : '');
+    } catch (e) { $('#espelhoStatus').innerHTML = `<div class="dica">${esc(e.message)}</div>`; }
+  }
+  $('#btnEspelho').addEventListener('click', async () => {
+    const b = $('#btnEspelho'); b.disabled = true; b.textContent = 'Atualizando… (pode levar alguns minutos)';
+    try { await api('/espelho/atualizar', { method: 'POST' }); flash('Listas atualizadas.'); } catch (e) { flash(e.message, 'erro'); }
+    b.disabled = false; b.textContent = 'Atualizar agora'; verEspelho();
+  });
 
   async function iniciar() {
     try {
