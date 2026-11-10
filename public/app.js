@@ -164,6 +164,7 @@
   const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
   async function buscar(cep) {
+    const erroAnterior = document.getElementById('resErro'); if (erroAnterior) erroAnterior.remove();
     medirEvento('buscar_cep', { cep_prefixo: cep.slice(0, 5) });
     const fechar = abrirBuscando();
     const minimo = espera(3000);
@@ -185,7 +186,11 @@
       renderResultados();
     } catch (e) {
       $('#resTitulo').textContent = 'Não foi possível buscar agora';
-      $('#gradePlanos').innerHTML = `<p class="vazio">${esc(e.message)}</p>`;
+      $('#resEndereco').textContent = '';
+      $('#resCorpo').classList.add('oculto'); $('#semCobertura').classList.add('oculto');
+      $('#avisoDemo').classList.add('oculto');
+      $('#resultados').insertAdjacentHTML('beforeend', `<p class="vazio" id="resErro">${esc(e.message)} <button type="button" class="btn claro" id="tentarDeNovo" style="margin-left:10px">Tentar de novo</button></p>`);
+      $('#tentarDeNovo').addEventListener('click', () => { $('#resErro').remove(); buscar(cep); });
     } finally {
       await minimo; fechar();
       $('#resultados').scrollIntoView({ behavior: 'auto', block: 'start' });

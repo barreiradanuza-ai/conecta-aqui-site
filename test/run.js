@@ -7,8 +7,8 @@ const assert = require('node:assert/strict');
 
 const LISTAS = {
   'ceps-claro': ['01002000', '01002001', '20040002'],
-  'ceps-nio': ['20040002', '97541000'],
-  'ceps-tim': ['01002000'],
+  'ceps-nio': ['20040002', '97541000', '88811810'],
+  'ceps-tim': ['01002000', '88811810'],
   'cidades-promo-claro': ['SAO PAULO', 'ALEGRETE'],
 };
 let logins = 0;
@@ -50,6 +50,7 @@ const mcc = http.createServer((req, res) => {
   }
   if (u.pathname === '/') { res.setHeader('content-type', 'text/html'); return res.end(fx('nio-home.html')); }
   if (u.pathname === '/para-voce/produtos-e-servicos/para-casa/internet') { res.setHeader('content-type', 'text/html'); return res.end(fx('vivo-internet.html')); }
+  if (u.pathname.startsWith('/api/mcc/admin/') && global.mcc429 > 0) { global.mcc429--; res.statusCode = 429; res.setHeader('retry-after', '0'); return res.end('Too Many Requests'); }
   const m = u.pathname.match(/^\/api\/mcc\/admin\/([a-z-]+)$/);
   if (m) {
     if (!/session-token=tok\d+/.test(ck)) { res.statusCode = 401; return res.end(JSON.stringify({ error: 'Não autenticado' })); }
@@ -191,6 +192,16 @@ const mcc = http.createServer((req, res) => {
     assert.ok(r.j.planos.some((p) => p.operadora.id === 'tim' && p.velocidadeMbps === 400), 'TIM tabela SP');
     assert.ok(!r.j.planos.some((p) => p.operadora.id === 'vivo'), 'Vivo sem cobertura não aparece');
     assert.equal(r.j.endereco.cidade, 'São Paulo');
+  });
+  await t('MCC respondendo 429 (limite da borda): a ponte repete e a busca funciona; resposta fica em cache', async () => {
+    require('../lib/cobertura').limparCache();
+    global.mcc429 = 2;
+    const r = await get('/api/cobertura?cep=88811810');
+    assert.equal(r.s, 200, JSON.stringify(r.j)); assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['nio', 'tim']);
+    assert.equal(global.mcc429, 0, 'as duas respostas 429 foram absorvidas pelas repetições');
+    global.mcc429 = 99; // tudo 429 agora: o mesmo CEP sai do cache por lista, sem ir ao MCC
+    assert.equal(await require('../lib/mcc').existeNaLista('ceps-nio', '88811810'), true, 'cache por lista do MCC');
+    global.mcc429 = 0;
   });
   await t('Busca do MCC é "contém": 0100200 NÃO conta como coberto (match exato)', async () => {
     const r = await get('/api/cobertura?cep=01002002');
