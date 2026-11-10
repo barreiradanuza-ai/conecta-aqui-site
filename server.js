@@ -287,6 +287,12 @@ async function rotaAdmin(req, res, url) {
   }
   if (p === '/espelho' && req.method === 'GET') return json(res, 200, espelho.status());
   if (p === '/espelho/atualizar' && req.method === 'POST') { cobertura.limparCache(); return json(res, 200, await espelho.atualizar()); }
+  if (p === '/espelho/importar' && req.method === 'POST') {
+    const lista = url.searchParams.get('lista');
+    const csv = await lerCorpo(req, 60 * 1024 * 1024);
+    try { const n = espelho.importarCsv(lista, csv); cobertura.limparCache(); return json(res, 200, { ok: true, registros: n, status: espelho.status() }); }
+    catch (e) { return json(res, 400, { erro: e.message }); }
+  }
   if (p === '/catalogo/sincronizar' && req.method === 'POST') {
     const op = url.searchParams.get('operadora');
     if (op) return json(res, 200, await catalogo.sincronizarOperadora(op));

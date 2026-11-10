@@ -300,6 +300,13 @@ const mcc = http.createServer((req, res) => {
     const rj = (await get('/api/cobertura?cep=20040002')).j; assert.equal(rj.planos.find((p) => p.id === nio600.id).precoPromo, null);
     assert.ok(!(await get('/api/cobertura?cep=01002000')).j.planos.some((p) => p.id === vivo2g.id));
   });
+  await t('Importar lista do espelho por CSV (tela do MCC)', async () => {
+    const r = await fetch(B + '/admin/api/espelho/importar?lista=ceps-tim', { method: 'POST', headers: { ...H, 'content-type': 'text/csv' }, body: '\uFEFFCEP\n"01002-000"\n"88811-810"\n"99999-999"\n' });
+    const j = await r.json(); assert.equal(r.status, 200, JSON.stringify(j)); assert.equal(j.registros, 3);
+    assert.equal(require('../lib/espelho').existe('ceps-tim', '99999999'), true);
+    const ruim = await fetch(B + '/admin/api/espelho/importar?lista=ceps-tim', { method: 'POST', headers: { ...H, 'content-type': 'text/csv' }, body: 'NOME\nx' });
+    assert.equal(ruim.status, 400);
+  });
   await t('Claro: cidade sem catálogo cai para a região padrão', async () => {
     const planos = await catalogo.planosPara({ uf: 'RJ', cidade: 'Cidade Sem Claro' });
     assert.equal(planos.find((p) => p.nome === 'Claro Fibra 350 Mega').preco, 89.9);
