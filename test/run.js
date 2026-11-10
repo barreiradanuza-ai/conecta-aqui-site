@@ -51,10 +51,11 @@ const mcc = http.createServer((req, res) => {
   if (u.pathname === '/') { res.setHeader('content-type', 'text/html'); return res.end(fx('nio-home.html')); }
   if (u.pathname === '/para-voce/produtos-e-servicos/para-casa/internet') { res.setHeader('content-type', 'text/html'); return res.end(fx('vivo-internet.html')); }
   if (u.pathname.startsWith('/api/mcc/admin/') && global.mcc429 > 0) { global.mcc429--; res.statusCode = 429; res.setHeader('retry-after', '0'); return res.end('Too Many Requests'); }
+  if (u.pathname.startsWith('/api/') && global.mccTexto > 0) { global.mccTexto--; res.statusCode = 200; res.setHeader('content-type', 'text/plain'); return res.end('rate limited'); } // borda devolvendo texto
   const m = u.pathname.match(/^\/api\/mcc\/admin\/([a-z-]+)$/);
   if (m) {
     if (!/session-token=tok\d+/.test(ck)) { res.statusCode = 401; return res.end(JSON.stringify({ error: 'Não autenticado' })); }
-    if (ck.includes('session-token=tok1;') || ck.endsWith('session-token=tok1')) { if (global.expirarPrimeira) { global.expirarPrimeira = false; res.statusCode = 401; return res.end('{}'); } }
+    if (global.expirarPrimeira) { global.expirarPrimeira = false; res.statusCode = 401; return res.end('{}'); } // sessão atual expirou
     const q = (u.searchParams.get('q') || '').replace(/-/g, '');
     const items = (LISTAS[m[1]] || []).filter((v) => v.includes(q)).map((v) => ({ id: v, value: v }));
     return res.end(JSON.stringify({ items, total: items.length, page: 1, pageSize: 100 }));
@@ -199,8 +200,13 @@ const mcc = http.createServer((req, res) => {
     const r = await get('/api/cobertura?cep=88811810');
     assert.equal(r.s, 200, JSON.stringify(r.j)); assert.deepEqual(r.j.operadoras.map((o) => o.id).sort(), ['nio', 'tim']);
     assert.equal(global.mcc429, 0, 'as duas respostas 429 foram absorvidas pelas repetições');
+    // borda respondendo "rate limited" em texto (inclusive no login): repete e segue
+    require('../lib/cobertura').limparCache(); require('../lib/mcc').sair();
+    global.mccTexto = 2;
+    const r3 = await get('/api/cobertura?cep=20040002');
+    assert.equal(r3.s, 200, JSON.stringify(r3.j)); assert.equal(global.mccTexto, 0);
     global.mcc429 = 99; // tudo 429 agora: o mesmo CEP sai do cache por lista, sem ir ao MCC
-    assert.equal(await require('../lib/mcc').existeNaLista('ceps-nio', '88811810'), true, 'cache por lista do MCC');
+    assert.equal(await require('../lib/mcc').existeNaLista('ceps-nio', '20040002'), true, 'cache por lista do MCC');
     global.mcc429 = 0;
   });
   await t('Busca do MCC é "contém": 0100200 NÃO conta como coberto (match exato)', async () => {
@@ -215,6 +221,7 @@ const mcc = http.createServer((req, res) => {
     assert.ok(r.j.planos.every((p) => !p.promoAplicada));
   });
   await t('Sessão do MCC expirada → entra de novo sozinho', async () => {
+    require('../lib/cobertura').limparCache();
     global.expirarPrimeira = true;
     const antes = logins;
     // força nova consulta sem cache
