@@ -405,6 +405,8 @@ function estatico(req, res, url) {
   }
   if (rel === '/') rel = '/index.html';
   if (rel === '/admin' || rel === '/admin/') rel = '/admin.html';
+  if (rel === '/privacidade' || rel === '/privacidade/') rel = '/privacidade.html';
+  if (rel === '/termos' || rel === '/termos/') rel = '/termos.html';
   const alvo = path.normalize(path.join(PUBLIC_DIR, rel));
   if (!alvo.startsWith(PUBLIC_DIR + path.sep)) return json(res, 404, { erro: 'Não encontrado' });
   fs.readFile(alvo, (err, dados) => {
