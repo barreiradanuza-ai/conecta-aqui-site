@@ -472,6 +472,20 @@ const mcc = http.createServer((req, res) => {
     const r = await fetchOrig(B + '/..%2f..%2fserver.js'); assert.notEqual(await r.text().then((t) => t.includes('require(')), true);
   });
 
+  await t('Páginas legais e metatags por domínio', async () => {
+    assert.equal((await fetchOrig(B + '/privacidade')).status, 200);
+    assert.equal((await fetchOrig(B + '/termos')).status, 200);
+    assert.ok((await (await fetchOrig(B + '/')).text()).includes('Rua Aritiba, 225'));
+    process.env.METATAGS_POR_DOMINIO = JSON.stringify({ 'comparador.exemplo.com': ['<meta name="verificacao" content="abc123">', '<script>alert(1)</script>'] });
+    const sub = await (await fetchOrig(B + '/', { headers: { 'x-forwarded-host': 'Comparador.exemplo.com' } })).text();
+    assert.ok(sub.includes('<meta name="verificacao" content="abc123">')); assert.ok(!sub.includes('alert(1)'));
+    assert.ok(!(await (await fetchOrig(B + '/')).text()).includes('verificacao'));
+    assert.ok(!(await (await fetchOrig(B + '/admin', { headers: { 'x-forwarded-host': 'comparador.exemplo.com' } })).text()).includes('verificacao'));
+    process.env.METATAGS_POR_DOMINIO = '{quebrado';
+    assert.equal((await fetchOrig(B + '/', { headers: { 'x-forwarded-host': 'comparador.exemplo.com' } })).status, 200);
+    delete process.env.METATAGS_POR_DOMINIO;
+  });
+
   await t('Slides: público lista ativos; painel edita e valida', async () => {
     const pub = await get('/api/slides'); assert.ok(pub.j.length >= 1); assert.ok(pub.j[0].titulo.includes('*melhor plano*'));
     assert.equal((await send('/admin/api/slides', 'PUT', [{ titulo: '', ativo: true }], H)).s, 400);

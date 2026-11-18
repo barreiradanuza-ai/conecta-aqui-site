@@ -55,6 +55,7 @@ Ela **só lê** dados do app, nunca altera nada. As respostas ficam guardadas na
 | `SYNC_INTERVALO_MIN` | opcional | Intervalo da sincronização em minutos (padrão 360) |
 | `WHATSAPP_NUMBER` | recomendado | Ex.: `5521923681687` |
 | `TELEFONE`, `EMAIL_CONTATO` | opcional | Aparecem no rodapé |
+| `METATAGS_POR_DOMINIO` | opcional | JSON `{"subdominio.conectaaqui.net.br": "<meta name=\"...\" content=\"...\">"}`. Insere a(s) metatag(s) no `<head>` só quando o site é aberto por aquele domínio (verificação de domínio da Meta, Google etc.). O valor pode ser uma tag ou uma lista de tags |
 | `NODE_ENV` | `production` | Ativa o cookie seguro |
 | `MCC_BASE_URL` | opcional | Padrão: `https://minhacasaconectada.net.br` |
 

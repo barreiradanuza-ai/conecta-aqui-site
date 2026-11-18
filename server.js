@@ -394,6 +394,20 @@ async function rotaAdmin(req, res, url) {
 }
 
 // ---------------- arquivos estáticos ----------------
+// Metatags por domínio (ex.: verificação de domínio da Meta ou do Google em cada subdomínio).
+// METATAGS_POR_DOMINIO = {"comparador.conectaaqui.net.br": "<meta name=\"...\" content=\"...\">"}
+// O valor pode ser uma tag ou uma lista de tags; só entram tags <meta ...>.
+function metatagsDoDominio(req) {
+  let mapa;
+  try { mapa = JSON.parse(process.env.METATAGS_POR_DOMINIO || '{}'); } catch { return ''; }
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase().replace(/:\d+$/, '');
+  const tags = mapa && typeof mapa === 'object' ? mapa[host] : null;
+  return [].concat(tags || []).map((t) => String(t).trim()).filter((t) => /^<meta\s[^<>]*>$/i.test(t)).join('\n');
+}
+function comMetatags(req, html) {
+  const tags = metatagsDoDominio(req);
+  return tags ? String(html).replace('<meta charset="utf-8">', '<meta charset="utf-8">\n' + tags) : html;
+}
 const TIPOS_ARQ = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp' };
 function estatico(req, res, url) {
   let rel = decodeURIComponent(url.pathname);
@@ -410,9 +424,9 @@ function estatico(req, res, url) {
   const alvo = path.normalize(path.join(PUBLIC_DIR, rel));
   if (!alvo.startsWith(PUBLIC_DIR + path.sep)) return json(res, 404, { erro: 'Não encontrado' });
   fs.readFile(alvo, (err, dados) => {
-    if (err) return fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (e2, idx) => (e2 ? json(res, 404, { erro: 'Não encontrado' }) : enviar(res, 404, idx, TIPOS_ARQ['.html'])));
+    if (err) return fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (e2, idx) => (e2 ? json(res, 404, { erro: 'Não encontrado' }) : enviar(res, 404, comMetatags(req, idx), TIPOS_ARQ['.html'])));
     const ext = path.extname(alvo);
-    enviar(res, 200, dados, TIPOS_ARQ[ext] || 'application/octet-stream', { 'cache-control': ['.html', '.css', '.js'].includes(ext) ? 'no-cache' : 'public, max-age=86400' });
+    enviar(res, 200, ext === '.html' && rel !== '/admin.html' ? comMetatags(req, dados) : dados, TIPOS_ARQ[ext] || 'application/octet-stream', { 'cache-control': ['.html', '.css', '.js'].includes(ext) ? 'no-cache' : 'public, max-age=86400' });
   });
 }
 
