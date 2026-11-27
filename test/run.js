@@ -15,6 +15,11 @@ let logins = 0;
 const mcc = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   const ck = req.headers.cookie || '';
+  // API de Conversões da Meta (falsa): guarda o que o site mandou
+  if (req.method === 'POST' && /^\/v[\d.]+\/\d+\/events$/.test(u.pathname)) {
+    let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { global.capi = (global.capi || []).concat({ path: u.pathname, token: u.searchParams.get('access_token'), corpo: JSON.parse(b) }); res.setHeader('content-type', 'application/json'); res.end('{"events_received":1}'); });
+    return;
+  }
   if (u.pathname === '/api/auth/csrf') {
     res.setHeader('set-cookie', '__Host-next-auth.csrf-token=abc%7Chash; Path=/; HttpOnly');
     return res.end(JSON.stringify({ csrfToken: 'abc' }));
@@ -470,6 +475,41 @@ const mcc = http.createServer((req, res) => {
     assert.equal((await fetchOrig(B + '/')).status, 200);
     assert.equal((await fetchOrig(B + '/admin')).status, 200);
     const r = await fetchOrig(B + '/..%2f..%2fserver.js'); assert.notEqual(await r.text().then((t) => t.includes('require(')), true);
+  });
+
+  await t('Meta: Pixel na página e Lead pela API de Conversões com o mesmo eventID', async () => {
+    assert.ok(!(await (await fetchOrig(B + '/')).text()).includes('fbq('), 'sem META_PIXEL_ID não injeta o pixel');
+    process.env.META_PIXEL_ID = '2586860801826704'; process.env.META_CAPI_TOKEN = 'capi_teste'; global.capi = [];
+    const html = await (await fetchOrig(B + '/')).text();
+    assert.ok(html.includes("fbq('init','2586860801826704')") && html.includes("fbq('track','PageView')"));
+    assert.ok(!(await (await fetchOrig(B + '/admin')).text()).includes('fbq('), 'painel não recebe pixel');
+    const cab = { 'content-type': 'application/json', cookie: '_fbp=fb.1.1.123; _fbc=fb.1.1.abcFBCLID', 'user-agent': 'TesteUA', 'x-forwarded-for': '200.1.2.3' };
+    const r = await fetchOrig(B + '/api/contato', { method: 'POST', headers: cab, body: JSON.stringify({ nome: 'Ana Júlia Souza', telefone: '(21) 98888-7777', cep: '20040-002', cidade: 'Rio de Janeiro', uf: 'RJ', planoNome: 'Nio 500', operadora: 'Nio', origem: 'plano', meta: { eventId: 'evt-lead-0001' } }) });
+    assert.equal(r.status, 200);
+    for (let i = 0; i < 50 && global.capi.length < 1; i++) await new Promise((ok) => setTimeout(ok, 20));
+    const ev = global.capi[0];
+    assert.equal(ev.path, '/v23.0/2586860801826704/events'); assert.equal(ev.token, 'capi_teste');
+    const e = ev.corpo.data[0];
+    assert.equal(e.event_name, 'Lead'); assert.equal(e.event_id, 'evt-lead-0001'); assert.equal(e.action_source, 'website');
+    const sha = (v) => require('node:crypto').createHash('sha256').update(v).digest('hex');
+    assert.equal(e.user_data.ph, sha('5521988887777')); assert.equal(e.user_data.fn, sha('ana'));
+    assert.equal(e.user_data.ct, sha('riodejaneiro')); assert.equal(e.user_data.zp, sha('20040002'));
+    assert.equal(e.user_data.fbc, 'fb.1.1.abcFBCLID'); assert.equal(e.user_data.fbp, 'fb.1.1.123');
+    assert.equal(e.user_data.client_ip_address, '200.1.2.3'); assert.ok(!JSON.stringify(e).includes('98888'), 'telefone nunca vai em texto puro');
+    // sem cobertura não conta como Lead
+    global.capi = [];
+    await fetchOrig(B + '/api/contato', { method: 'POST', headers: { ...cab, 'x-forwarded-for': '200.1.2.4' }, body: JSON.stringify({ nome: 'Beto', telefone: '21977776666', origem: 'sem-cobertura', meta: { eventId: 'evt-sem-0001' } }) });
+    for (let i = 0; i < 50 && global.capi.length < 1; i++) await new Promise((ok) => setTimeout(ok, 20));
+    assert.equal(global.capi[0].corpo.data[0].event_name, 'SemCobertura');
+    // clique no plano (WhatsApp) = Lead; WhatsApp geral = Contact
+    global.capi = [];
+    await fetchOrig(B + '/api/clique', { method: 'POST', headers: { ...cab, 'x-forwarded-for': '200.1.2.5' }, body: JSON.stringify({ planoNome: 'TIM 500', operadora: 'TIM', valor: 89.99, cep: '01002000', meta: { eventId: 'evt-wa-00001' } }) });
+    await fetchOrig(B + '/api/clique', { method: 'POST', headers: { ...cab, 'x-forwarded-for': '200.1.2.5' }, body: JSON.stringify({ geral: true, meta: { eventId: 'evt-ct-00001' } }) });
+    for (let i = 0; i < 50 && global.capi.length < 2; i++) await new Promise((ok) => setTimeout(ok, 20));
+    const nomes = global.capi.map((x) => x.corpo.data[0].event_name + ':' + x.corpo.data[0].event_id).sort();
+    assert.deepEqual(nomes, ['Contact:evt-ct-00001', 'Lead:evt-wa-00001']);
+    assert.equal(global.capi.find((x) => x.corpo.data[0].event_name === 'Lead').corpo.data[0].custom_data.value, 89.99);
+    delete process.env.META_PIXEL_ID; delete process.env.META_CAPI_TOKEN;
   });
 
   await t('Páginas legais e metatags por domínio', async () => {

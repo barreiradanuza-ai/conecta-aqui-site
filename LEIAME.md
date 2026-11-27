@@ -90,3 +90,19 @@ A mensagem do WhatsApp gerada pelo site traz plano, operadora, valor e endereço
 - [ ] Conferir no painel a primeira sincronização e marcar os destaques
 - [ ] Revisar os textos do site, principalmente "Sem custo para você"
 - [ ] Copiar `logo-branca.png` e `favicon.png` para `public/images/` caso o site antigo saia do ar. Hoje eles são carregados de conectaaqui.net.br
+
+
+## Meta Ads: Pixel + API de Conversões
+
+Liga com duas variáveis no Railway: `META_PIXEL_ID` (id do conjunto de dados) e `META_CAPI_TOKEN` (token gerado no Gerenciador de Eventos → Configurações → API de Conversões). Sem elas, nada da Meta é carregado.
+
+| Momento no site | Pixel (navegador) | API de Conversões (servidor) |
+|---|---|---|
+| Qualquer página pública | `PageView` | — |
+| Busca de CEP concluída | `Search` (cidade, com/sem cobertura) | — |
+| "Quero este plano" (WhatsApp) | `Lead` com valor do plano | `Lead` |
+| Formulário com plano/contato | `Lead` | `Lead` com telefone e nome em hash |
+| Formulário "sem cobertura" | `SemCobertura` (personalizado) | `SemCobertura` |
+| WhatsApp geral (topo, botão flutuante) | `Contact` | `Contact` (só visitantes vindos de anúncio) |
+
+O navegador e o servidor mandam o mesmo `eventID`, e a Meta conta o evento uma vez só. Só quem tem cobertura vira `Lead`, então a Meta aprende a trazer gente de área atendida. Os cookies `_fbc`/`_fbp` do Pixel vão junto; o `_fbc` também fica gravado no lead (`canal: meta`). Para testar, defina `META_TEST_EVENT_CODE` com o código da aba "Testar eventos" e apague depois.
