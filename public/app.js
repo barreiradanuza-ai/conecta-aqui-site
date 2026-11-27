@@ -26,6 +26,12 @@
     }
     return doGoogle(salvo) ? salvo : null;
   })();
+  // ---------- Meta (Pixel + API de Conversões com o mesmo eventID) ----------
+  const DA_META = /(?:^|;\s*)_fbc=/.test(document.cookie) || new URLSearchParams(location.search).has('fbclid');
+  const novoEventoId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  function metaEvento(nome, params = {}, eventId, custom = false) {
+    try { if (typeof window.fbq === 'function') window.fbq(custom ? 'trackCustom' : 'track', nome, params, eventId ? { eventID: eventId } : undefined); } catch {}
+  }
   const comRef = (msg) => (RASTREIO ? `${msg}\n(Ref: ${RASTREIO.ref})` : msg);
 
   const TIPO_NOME = { internet: 'Internet residencial', 'combo-tv': 'Internet + TV', 'combo-movel': 'Internet + Celular', 'combo-completo': 'Combo completo', movel: 'Celular', tv: 'TV' };
@@ -62,7 +68,9 @@
       el.href = l;
       el.addEventListener('click', () => {
         medirLead('whatsapp_geral', { origem: id });
-        if (RASTREIO) try { navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ geral: true, rastreio: RASTREIO })], { type: 'application/json' })); } catch {}
+        const eid = novoEventoId();
+        metaEvento('Contact', { content_name: 'whatsapp_geral' }, eid);
+        if (RASTREIO || DA_META) try { navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ geral: true, rastreio: RASTREIO, meta: { eventId: eid } })], { type: 'application/json' })); } catch {}
       });
     }
     const box = $('#rodapeContato');
@@ -183,6 +191,7 @@
       estado.resultado = j;
       estado.ops = new Set(j.operadoras.map((o) => o.id)); estado.vel = 'todas'; estado.precoMax = 0;
       history.replaceState(null, '', '?cep=' + cep);
+      metaEvento('Search', { search_string: j.endereco?.cidade || '', content_category: j.planos.length ? 'com_cobertura' : 'sem_cobertura' });
       renderResultados();
     } catch (e) {
       $('#resTitulo').textContent = 'Não foi possível buscar agora';
@@ -354,10 +363,12 @@
       const msg = comRef(`Olá! Quero contratar o plano ${p.nome} (${p.operadora.nome}) de ${preco}/mês.\nEndereço: ${enderecoTexto()}`);
       const numero = estado.config.whatsappPlanos || '5511955032662';
       medirLead('whatsapp_plano', { plano: p.nome, operadora: p.operadora.nome, valor: p.precoPromo ?? p.preco });
+      const eid = novoEventoId();
+      metaEvento('Lead', { content_name: p.nome, content_category: p.operadora.nome, value: p.precoPromo ?? p.preco, currency: 'BRL' }, eid);
       window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
       const r = estado.resultado || {}; const d = enderecoDigitado();
       try {
-        navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ planoNome: p.nome, operadora: p.operadora.nome, valor: p.precoPromo ?? p.preco, cep: r.cep, rua: d.rua || r.endereco?.logradouro, numero: d.numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, rastreio: RASTREIO })], { type: 'application/json' }));
+        navigator.sendBeacon('/api/clique', new Blob([JSON.stringify({ planoNome: p.nome, operadora: p.operadora.nome, valor: p.precoPromo ?? p.preco, cep: r.cep, rua: d.rua || r.endereco?.logradouro, numero: d.numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, rastreio: RASTREIO, meta: { eventId: eid } })], { type: 'application/json' }));
       } catch {}
     }));
   }
@@ -428,10 +439,11 @@
     const r = estado.resultado || {};
     const p = estado.planoEscolhido;
     const btn = $('#btnEnviar'); btn.disabled = true;
+    const eid = novoEventoId();
     try {
       const resp = await fetch('/api/contato', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ nome, telefone, site: f.get('site'), cep: r.cep, rua: enderecoDigitado().rua || r.endereco?.logradouro, numero: enderecoDigitado().numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, planoNome: p?.nome, operadora: p?.operadora.nome, origem: estado.origemContato, rastreio: RASTREIO }),
+        body: JSON.stringify({ nome, telefone, site: f.get('site'), cep: r.cep, rua: enderecoDigitado().rua || r.endereco?.logradouro, numero: enderecoDigitado().numero, bairro: r.endereco?.bairro, cidade: r.endereco?.cidade, uf: r.endereco?.uf, planoNome: p?.nome, operadora: p?.operadora.nome, origem: estado.origemContato, rastreio: RASTREIO, meta: { eventId: eid } }),
       });
       if (!resp.ok) throw new Error((await resp.json()).erro);
     } catch (e) {
@@ -439,6 +451,8 @@
     }
     btn.disabled = false;
     medirLead('formulario_' + estado.origemContato);
+    if (estado.origemContato === 'sem-cobertura') metaEvento('SemCobertura', {}, eid, true);
+    else metaEvento('Lead', { content_name: p?.nome || 'contato', content_category: p?.operadora.nome, currency: 'BRL' }, eid);
     modal.close();
     ev.target.reset();
     const d = enderecoDigitado();

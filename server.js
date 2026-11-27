@@ -14,6 +14,7 @@ const cobertura = require('./lib/cobertura');
 const catalogo = require('./lib/sync/catalogo');
 const espelho = require('./lib/espelho');
 const gasto = require('./lib/gasto');
+const meta = require('./lib/meta');
 const trafego = require('./lib/trafego');
 const { scriptGoogle } = require('./lib/script-google');
 const UPLOADS_DIR = path.join(store.DATA_DIR, 'uploads');
@@ -183,9 +184,13 @@ async function rotaPublica(req, res, url) {
       planoNome: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40),
       origem: ['plano', 'sem-cobertura', 'contato'].includes(b.origem) ? b.origem : 'contato',
     });
-    const rc = rastreio.registrarFormulario(leads[leads.length - 1], b);
-    if (rc) Object.assign(leads[leads.length - 1], { ref: rc.ref, canal: 'googleads' });
+    const novo = leads[leads.length - 1];
+    const rc = rastreio.registrarFormulario(novo, b);
+    if (rc) Object.assign(novo, { ref: rc.ref, canal: 'googleads' });
+    if (meta.cookie(req, '_fbc')) Object.assign(novo, { fbc: meta.cookie(req, '_fbc'), canal: novo.canal || 'meta' });
     store.save('leads', leads.slice(-20000));
+    // Meta: só conta como "Lead" quem tem cobertura; sem cobertura vira evento próprio (não treina o algoritmo)
+    meta.enviar({ nome: novo.origem === 'sem-cobertura' ? 'SemCobertura' : 'Lead', eventId: b.meta && b.meta.eventId, req, ip: ipDe(req), lead: novo, custom: { content_name: novo.planoNome || undefined, content_category: novo.operadora || undefined, lead_origem: novo.origem } });
     return json(res, 200, { ok: true });
   }
   if (req.method === 'GET' && url.pathname === '/api/slides') {
@@ -215,7 +220,12 @@ async function rotaPublica(req, res, url) {
     });
     const rc = rastreio.registrarClique(b, { plano: String(b.planoNome || '').slice(0, 100), operadora: String(b.operadora || '').slice(0, 40), valor: Number(b.valor) || null, cep: cobertura.limparCep(b.cep).slice(0, 8), rua: String(b.rua || '').slice(0, 120), numero: String(b.numero || '').slice(0, 10), bairro: String(b.bairro || '').slice(0, 60), cidade: String(b.cidade || '').slice(0, 60), uf: String(b.uf || '').slice(0, 2) });
     if (rc) Object.assign(leads[leads.length - 1], { ref: rc.ref, canal: 'googleads' });
+    if (meta.cookie(req, '_fbc')) Object.assign(leads[leads.length - 1], { fbc: meta.cookie(req, '_fbc'), canal: leads[leads.length - 1].canal || 'meta' });
     store.save('leads', leads.slice(-20000));
+    if (b.meta && b.meta.eventId) {
+      const l = leads[leads.length - 1];
+      meta.enviar({ nome: b.geral ? 'Contact' : 'Lead', eventId: b.meta.eventId, req, ip: ipDe(req), lead: l, custom: b.geral ? {} : { value: Number(b.valor) || undefined, content_name: l.planoNome || undefined, content_category: l.operadora || undefined, lead_origem: 'whatsapp_plano' } });
+    }
     return json(res, 200, { ok: true });
   }
   // gasto do Google Ads enviado pelo script da conta
@@ -405,7 +415,7 @@ function metatagsDoDominio(req) {
   return [].concat(tags || []).map((t) => String(t).trim()).filter((t) => /^<meta\s[^<>]*>$/i.test(t)).join('\n');
 }
 function comMetatags(req, html) {
-  const tags = metatagsDoDominio(req);
+  const tags = [metatagsDoDominio(req), meta.snippet()].filter(Boolean).join('\n');
   return tags ? String(html).replace('<meta charset="utf-8">', '<meta charset="utf-8">\n' + tags) : html;
 }
 const TIPOS_ARQ = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp' };
